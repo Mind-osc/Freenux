@@ -107,11 +107,11 @@ class MainActivity : Activity() {
             }
         })
 
-        root.addView(LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
+        val logRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        root.addView(logRow.apply {
             fun small(t: String, f: () -> Unit) = Button(this@MainActivity).apply {
                 text = t; isAllCaps = false; setOnClickListener { f() }
-                this@apply.addView(this, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
+                logRow.addView(this, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
             }
             small("📋 Αντιγραφή log") {
                 val cm = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
