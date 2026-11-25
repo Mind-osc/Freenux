@@ -5,6 +5,8 @@ export MOZ_FAKE_NO_SANDBOX=1 MOZ_DISABLE_CONTENT_SANDBOX=1 MOZ_DISABLE_GMP_SANDB
 export PATH="/root/.local/bin:$PATH"
 export XDG_RUNTIME_DIR=/tmp/runtime-root
 export QT_X11_NO_MITSHM=1 _X11_NO_MITSHM=1 _MITSHM=0
+# Γραφικά μόνο από τον επεξεργαστή: χωρίς DRI3 (κολλάει στο proot)
+export LIBGL_DRI3_DISABLE=1 LIBGL_ALWAYS_SOFTWARE=1 GDK_GL=disable
 export XDG_CURRENT_DESKTOP=XFCE XDG_SESSION_TYPE=x11 XDG_SESSION_DESKTOP=xfce
 mkdir -p "$XDG_RUNTIME_DIR" && chmod 700 "$XDG_RUNTIME_DIR"
 
