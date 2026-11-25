@@ -9,8 +9,15 @@ if ! command -v vulkaninfo >/dev/null; then
   return 0 2>/dev/null || exit 0
 fi
 
-DEV=$(TU_DEBUG=noconform MESA_VK_WSI_DEBUG=sw timeout 15 vulkaninfo --summary 2>/dev/null | grep -i -m1 "deviceName" | sed 's/.*= *//')
+VKOUT=$(TU_DEBUG=noconform MESA_VK_WSI_DEBUG=sw timeout 40 vulkaninfo --summary 2>&1); VKRC=$?
+DEV=$(echo "$VKOUT" | grep -i "deviceName" | grep -vi "llvmpipe" | head -1 | sed 's/.*= *//')
 echo ">>> GPU Vulkan: ${DEV:-δεν βρέθηκε}"
+if [ -z "$DEV" ]; then
+  echo ">>> [GPU διάγνωση] vulkaninfo κωδικός $VKRC (124 = timeout)"
+  echo ">>> [GPU διάγνωση] συσκευή κάρτας:"; ls -l /dev/kgsl* 2>&1 | sed 's/^/   /'
+  echo ">>> [GPU διάγνωση] drivers Vulkan:"; ls /usr/share/vulkan/icd.d/ 2>&1 | sed 's/^/   /'
+  echo ">>> [GPU διάγνωση] έξοδος vulkaninfo:"; echo "$VKOUT" | grep -v "^$" | tail -12 | sed 's/^/   /'
+fi
 case "$DEV" in
   *Adreno*|*Turnip*|*turnip*) ;;
   *)
