@@ -1,7 +1,7 @@
 #!/bin/bash
-# Freenux ενημερώσεις: v2 Claude/θέματα/φόντα, v3 ήχος, v4 πληκτρολόγιο/κατάστημα, v5 driver GPU Adreno
+# Freenux ενημερώσεις: v2 Claude/θέματα/φόντα, v3 ήχος, v4 πληκτρολόγιο/κατάστημα, v5 driver GPU, v6 patched Mesa
 set -e
-V=/root/.freenux/update.v5
+V=/root/.freenux/update.v6
 [ -f "$V" ] && { echo ">>> Όλα ενημερωμένα"; exit 0; }
 export DEBIAN_FRONTEND=noninteractive
 mkdir -p /root/.freenux
@@ -143,6 +143,7 @@ printf '[Desktop Entry]\nType=Application\nName=Synaptic\nNoDisplay=true\n' > /r
 touch /root/.freenux/update.v4
 fi
 
+if [ ! -f /root/.freenux/update.v5 ]; then
 echo ">>> Ενημέρωση: driver GPU για Adreno (Turnip με KGSL, lfdevs/mesa-for-android-container)"
 TD=$(mktemp -d)
 DEB="$TD/mesa-vulkan-drivers_25.0.7-2+deb13u1_arm64_unpatched.deb"
@@ -159,6 +160,11 @@ else
   echo "(ο driver GPU δεν κατέβηκε ή απέτυχε ο έλεγχος checksum – συνεχίζουμε χωρίς)"
 fi
 rm -rf "$TD"
+touch /root/.freenux/update.v5
+fi
+
+echo ">>> Ενημέρωση: patched Mesa (εικόνα GPU κατευθείαν στο Termux:X11)"
+python3 /usr/local/bin/freenux-gpu-install
 
 apt-get clean
 touch "$V"

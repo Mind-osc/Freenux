@@ -25,7 +25,22 @@ case "$DEV" in
     return 0 2>/dev/null || exit 0 ;;
 esac
 
-# Δοκιμή OpenGL μέσω Zink με timeout· αν κολλήσει, δεν το ενεργοποιούμε
+# 1) Patched Mesa: freedreno πάνω σε KGSL, εικόνα κατευθείαν στο Termux:X11 (DRI3)
+if [ -f /root/.freenux/mesa-patched ] && [ ! -f /root/.freenux/gpu-direct-failed ]; then
+  GLK=$(env -u LIBGL_DRI3_DISABLE -u LIBGL_ALWAYS_SOFTWARE MESA_LOADER_DRIVER_OVERRIDE=kgsl TU_DEBUG=noconform \
+        timeout 15 glxinfo -B 2>/dev/null | grep -m1 "OpenGL renderer" | sed 's/.*: *//')
+  if [ -n "$GLK" ] && ! echo "$GLK" | grep -qi "llvmpipe\|softpipe"; then
+    unset LIBGL_DRI3_DISABLE LIBGL_ALWAYS_SOFTWARE MESA_VK_WSI_DEBUG GALLIUM_DRIVER
+    export MESA_LOADER_DRIVER_OVERRIDE=kgsl TU_DEBUG=noconform
+    echo ">>> GPU ✓ ενεργή (απευθείας, patched $(cat /root/.freenux/mesa-patched)): $GLK"
+    return 0 2>/dev/null || exit 0
+  fi
+  echo ">>> GPU: ο patched driver δεν απάντησε (${GLK:-timeout}) – δοκιμή Zink"
+fi
+
+[ -f /root/.freenux/gpu-direct-failed ] && echo ">>> GPU: ο απευθείας driver είχε κολλήσει το desktop – χρησιμοποιώ Zink (σβήσε /root/.freenux/gpu-direct-failed για νέα δοκιμή)"
+
+# 2) Zink πάνω σε Turnip, με αντιγραφή εικόνας από τον επεξεργαστή (δουλεύει πάντα)
 GLR=$(MESA_LOADER_DRIVER_OVERRIDE=zink GALLIUM_DRIVER=zink TU_DEBUG=noconform MESA_VK_WSI_DEBUG=sw LIBGL_KOPPER_DRI2=1 \
       LIBGL_ALWAYS_SOFTWARE= timeout 15 glxinfo -B 2>/dev/null | grep -m1 "OpenGL renderer" | sed 's/.*: *//')
 if [ -n "$GLR" ] && ! echo "$GLR" | grep -qi "llvmpipe\|softpipe"; then

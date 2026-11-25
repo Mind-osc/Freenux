@@ -75,6 +75,10 @@ while [ -e /tmp/.X11-unix/X0 ]; do
     wait $SESS
   else
     echo ">>> Το xfce4-session κόλλησε – εναλλακτική εκκίνηση"
+    if [ "$MESA_LOADER_DRIVER_OVERRIDE" = "kgsl" ]; then
+      touch /root/.freenux/gpu-direct-failed
+      echo ">>> GPU: ο απευθείας driver μάλλον κόλλησε το desktop – πάτα «Επανεκκίνηση desktop» για Zink"
+    fi
     pkill -x xfce4-session 2>/dev/null
     manual_xfce
   fi
