@@ -3,6 +3,7 @@
 export DISPLAY=:0 HOME=/root USER=root LANG=C.UTF-8
 export MOZ_FAKE_NO_SANDBOX=1 MOZ_DISABLE_CONTENT_SANDBOX=1 MOZ_DISABLE_GMP_SANDBOX=1
 export PATH="/root/.local/bin:$PATH"
+export NO_AT_BRIDGE=1  # χωρίς τα μηνύματα AT-SPI
 export XDG_RUNTIME_DIR=/tmp/runtime-root
 export QT_X11_NO_MITSHM=1 _X11_NO_MITSHM=1 _MITSHM=0
 # Γραφικά μόνο από τον επεξεργαστή: χωρίς DRI3 (κολλάει στο proot)

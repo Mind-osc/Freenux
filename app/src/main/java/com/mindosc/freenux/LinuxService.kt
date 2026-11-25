@@ -226,9 +226,7 @@ class LinuxService : Service() {
         val pb = ProcessBuilder("/system/bin/app_process", "-Xnoimage-dex2oat", "/",
             "--nice-name=freenux-x11", "$X11_PKG.CmdEntryPoint", ":0",
             // Η κοινή μνήμη (MIT-SHM) δεν περνάει σωστά από το proot και κολλάει τα προγράμματα
-            "-extension", "MIT-SHM",
-            // Το DRI3 κάνει τη Mesa μέσα στο proot να κολλάει (GTK δεν ανοίγει ποτέ παράθυρο)
-            "-extension", "DRI3").redirectErrorStream(true)
+            "-extension", "MIT-SHM").redirectErrorStream(true)
         pb.environment().apply {
             put("CLASSPATH", apk)
             put("TMPDIR", tmp.absolutePath)

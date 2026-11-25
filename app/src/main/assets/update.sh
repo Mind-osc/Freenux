@@ -1,7 +1,7 @@
 #!/bin/bash
-# Freenux ενημερώσεις: v2 Claude/θέματα/φόντα, v3 ήχος, v4 πληκτρολόγιο/κατάστημα/GPU
+# Freenux ενημερώσεις: v2 Claude/θέματα/φόντα, v3 ήχος, v4 πληκτρολόγιο/κατάστημα, v5 driver GPU Adreno
 set -e
-V=/root/.freenux/update.v4
+V=/root/.freenux/update.v5
 [ -f "$V" ] && { echo ">>> Όλα ενημερωμένα"; exit 0; }
 export DEBIAN_FRONTEND=noninteractive
 mkdir -p /root/.freenux
@@ -97,6 +97,7 @@ apt-get install -y pulseaudio pulseaudio-utils pavucontrol xfce4-pulseaudio-plug
 touch /root/.freenux/update.v3
 fi
 
+if [ ! -f /root/.freenux/update.v4 ]; then
 echo ">>> Ενημέρωση: ελληνικό πληκτρολόγιο, κατάστημα εφαρμογών, backup, GPU"
 apt-get update
 apt-get install -y x11-xkb-utils xfce4-xkb-plugin synaptic pigz
@@ -139,6 +140,25 @@ Categories=System;Settings;
 EOF
 mkdir -p /root/.local/share/applications
 printf '[Desktop Entry]\nType=Application\nName=Synaptic\nNoDisplay=true\n' > /root/.local/share/applications/synaptic.desktop
+touch /root/.freenux/update.v4
+fi
+
+echo ">>> Ενημέρωση: driver GPU για Adreno (Turnip με KGSL, lfdevs/mesa-for-android-container)"
+TD=$(mktemp -d)
+DEB="$TD/mesa-vulkan-drivers_25.0.7-2+deb13u1_arm64_unpatched.deb"
+URL="https://github.com/lfdevs/mesa-for-android-container/releases/download/debian%2F25.0.7-2-turnip/mesa-vulkan-drivers_25.0.7-2%2Bdeb13u1_arm64_unpatched.deb"
+SUM=6ef4b243e2e253a294bf8a8f8857e7b13d6595a8e12662e1d7a7ef5fd873ec96
+if curl -fL --retry 3 "$URL" -o "$DEB" && echo "$SUM  $DEB" | sha256sum -c - >/dev/null; then
+  if apt-get install -y --allow-downgrades --no-remove "$DEB"; then
+    apt-mark hold mesa-vulkan-drivers
+    echo ">>> ✓ Driver GPU εγκαταστάθηκε (άνοιξε τον διακόπτη GPU και κάνε επανεκκίνηση desktop)"
+  else
+    echo "(ο driver GPU δεν μπήκε – συνεχίζουμε χωρίς)"
+  fi
+else
+  echo "(ο driver GPU δεν κατέβηκε ή απέτυχε ο έλεγχος checksum – συνεχίζουμε χωρίς)"
+fi
+rm -rf "$TD"
 
 apt-get clean
 touch "$V"

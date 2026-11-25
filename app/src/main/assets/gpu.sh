@@ -14,16 +14,16 @@ echo ">>> GPU Vulkan: ${DEV:-δεν βρέθηκε}"
 case "$DEV" in
   *Adreno*|*Turnip*|*turnip*) ;;
   *)
-    echo ">>> GPU: δεν βρέθηκε driver για Adreno (Turnip/KGSL) – μένει ο επεξεργαστής"
+    echo ">>> GPU: δεν βρέθηκε driver για Adreno (Turnip/KGSL) – πάτα ① για ενημέρωση· μέχρι τότε μένει ο επεξεργαστής"
     return 0 2>/dev/null || exit 0 ;;
 esac
 
 # Δοκιμή OpenGL μέσω Zink με timeout· αν κολλήσει, δεν το ενεργοποιούμε
-GLR=$(MESA_LOADER_DRIVER_OVERRIDE=zink GALLIUM_DRIVER=zink TU_DEBUG=noconform MESA_VK_WSI_DEBUG=sw \
+GLR=$(MESA_LOADER_DRIVER_OVERRIDE=zink GALLIUM_DRIVER=zink TU_DEBUG=noconform MESA_VK_WSI_DEBUG=sw LIBGL_KOPPER_DRI2=1 \
       LIBGL_ALWAYS_SOFTWARE= timeout 15 glxinfo -B 2>/dev/null | grep -m1 "OpenGL renderer" | sed 's/.*: *//')
 if [ -n "$GLR" ] && ! echo "$GLR" | grep -qi "llvmpipe\|softpipe"; then
   unset LIBGL_ALWAYS_SOFTWARE
-  export MESA_LOADER_DRIVER_OVERRIDE=zink GALLIUM_DRIVER=zink TU_DEBUG=noconform MESA_VK_WSI_DEBUG=sw
+  export MESA_LOADER_DRIVER_OVERRIDE=zink GALLIUM_DRIVER=zink TU_DEBUG=noconform MESA_VK_WSI_DEBUG=sw LIBGL_KOPPER_DRI2=1
   echo ">>> GPU ✓ ενεργή: $GLR"
 else
   echo ">>> GPU: το OpenGL δεν δούλεψε (${GLR:-timeout}) – μένει ο επεξεργαστής"

@@ -14,7 +14,7 @@ class Linux(private val ctx: Context) {
 
     val rootfsReady get() = rootfsMarker.exists()
     val setupDone get() = rootfsReady && File(rootfs, "root/.freenux/setup.done").exists()
-    val updateDone get() = File(rootfs, "root/.freenux/update.v4").exists()
+    val updateDone get() = File(rootfs, "root/.freenux/update.v5").exists()
     val claudeDone get() = File(rootfs, "root/.freenux/claude.done").exists()
 
     /** Διακόπτης GPU: αρχείο-σημάδι που διαβάζει το gpu.sh μέσα στο Linux. */

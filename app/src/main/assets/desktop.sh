@@ -3,6 +3,7 @@
 export DISPLAY=:1 HOME=/root USER=root LANG=C.UTF-8
 export MOZ_FAKE_NO_SANDBOX=1 MOZ_DISABLE_CONTENT_SANDBOX=1 MOZ_DISABLE_GMP_SANDBOX=1
 export PATH="/root/.local/bin:$PATH"
+export NO_AT_BRIDGE=1  # χωρίς τα μηνύματα AT-SPI
 export XDG_RUNTIME_DIR=/tmp/runtime-root
 mkdir -p "$XDG_RUNTIME_DIR" && chmod 700 "$XDG_RUNTIME_DIR"
 
