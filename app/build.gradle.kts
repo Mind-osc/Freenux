@@ -17,10 +17,20 @@ android {
         ndk { abiFilters += "arm64-v8a" }
     }
 
+    // Σταθερό κλειδί υπογραφής: τα νέα APK εγκαθίστανται πάνω από τα παλιά
+    signingConfigs {
+        create("freenux") {
+            storeFile = file("freenux.keystore")
+            storePassword = "freenux"
+            keyAlias = "freenux"
+            keyPassword = "freenux"
+        }
+    }
     buildTypes {
+        debug { signingConfig = signingConfigs.getByName("freenux") }
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("freenux")
         }
     }
     compileOptions {
