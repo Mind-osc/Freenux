@@ -8,6 +8,7 @@ mkdir -p "$XDG_RUNTIME_DIR" && chmod 700 "$XDG_RUNTIME_DIR"
 
 # Εμφάνιση Mint (μία φορά· αν αποτύχει, συνεχίζουμε κανονικά)
 bash /usr/local/bin/freenux-mint || echo "(η εμφάνιση Mint θα ξαναδοκιμαστεί στην επόμενη εκκίνηση)"
+. /usr/local/bin/freenux-audio
 
 pkill -f Xtigervnc 2>/dev/null; pkill -f xfce4-session 2>/dev/null
 rm -f /tmp/.X1-lock /tmp/.X11-unix/X1

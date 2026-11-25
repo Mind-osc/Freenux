@@ -1,10 +1,12 @@
 #!/bin/bash
 # Freenux ενημέρωση v2: εφαρμογή Claude, θέματα, εικονίδια, φόντα, native X11
 set -e
-V=/root/.freenux/update.v2
+V=/root/.freenux/update.v3
 [ -f "$V" ] && { echo ">>> Όλα ενημερωμένα"; exit 0; }
 export DEBIAN_FRONTEND=noninteractive
 mkdir -p /root/.freenux
+
+if [ ! -f /root/.freenux/update.v2 ]; then
 
 echo ">>> Ενημέρωση: πακέτα"
 apt-get update
@@ -84,6 +86,13 @@ Name=Freenux φόντο
 Exec=freenux-wallpaper
 NoDisplay=true
 EOF
+
+touch /root/.freenux/update.v2
+fi
+
+echo ">>> Ενημέρωση: ήχος (PulseAudio + ένταση στο panel)"
+apt-get update
+apt-get install -y pulseaudio pulseaudio-utils pavucontrol xfce4-pulseaudio-plugin
 
 apt-get clean
 touch "$V"

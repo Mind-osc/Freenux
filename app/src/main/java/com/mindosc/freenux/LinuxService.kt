@@ -75,6 +75,7 @@ class LinuxService : Service() {
     private lateinit var dm: DisplayManager
     private var desktop: Process? = null
     private var xserver: Process? = null
+    private val audio = AudioBridge()
     @Volatile private var busy = false
     private var wake: PowerManager.WakeLock? = null
 
@@ -123,6 +124,7 @@ class LinuxService : Service() {
         dm.unregisterDisplayListener(displayListener)
         desktop?.destroy()
         xserver?.destroy()
+        audio.stop()
         wake?.let { if (it.isHeld) it.release() }
         super.onDestroy()
     }
@@ -167,6 +169,7 @@ class LinuxService : Service() {
         LogBus.log(if (x11) ">>> Λειτουργία: γρήγορη οθόνη (Termux:X11)" else ">>> Λειτουργία: συμβατή (VNC)")
         val p = linux.command(if (x11) "/usr/local/bin/freenux-desktop-x11" else "/usr/local/bin/freenux-desktop").start()
         desktop = p
+        audio.start()
         if (wake?.isHeld != true) wake = (getSystemService(POWER_SERVICE) as PowerManager)
             .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "freenux:desktop").apply { acquire() }
         thread { p.inputStream.bufferedReader().forEachLine { LogBus.log(it) } }
@@ -238,6 +241,7 @@ class LinuxService : Service() {
     }
 
     private fun stopDesktop(stopService: Boolean) {
+        audio.stop()
         desktop?.destroy()
         desktop = null
         xserver?.destroy()
