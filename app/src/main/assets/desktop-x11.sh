@@ -31,6 +31,29 @@ PY
 
 python3 /usr/local/bin/freenux-xtest 2>&1
 
+# Πού έχει κολλήσει κάθε πρόγραμμα του XFCE
+diag_stuck() {
+  echo ">>> [διάγνωση] πού περιμένει κάθε πρόγραμμα:"
+  for n in xfsettingsd xfwm4 xfdesktop xfce4-panel; do
+    for pid in $(pgrep -x $n); do
+      st=$(awk '/^State/{print $2$3}' /proc/$pid/status 2>/dev/null)
+      wc=$(cat /proc/$pid/wchan 2>/dev/null)
+      fds=$(ls -l /proc/$pid/fd 2>/dev/null | awk 'NR>1{print $NF}' | grep -v "^/dev" | tr '\n' ' ' | cut -c1-160)
+      echo "   $n: $st wchan=$wc"
+      echo "      fd: $fds"
+    done
+  done
+  echo ">>> [διάγνωση] xdpyinfo (απλό πρόγραμμα X):"
+  command -v xdpyinfo >/dev/null || apt-get install -y -q x11-utils >/dev/null 2>&1
+  timeout 10 xdpyinfo 2>&1 | head -4 | sed 's/^/   /'
+  echo "   (κωδικός ${PIPESTATUS[0]}, 124 = κόλλησε)"
+  echo ">>> [διάγνωση] xfwm4 με timeout:"
+  DISPLAY=:0 timeout 8 xfwm4 --version 2>&1 | head -2 | sed 's/^/   /'
+  echo ">>> [διάγνωση] dbus: $DBUS_SESSION_BUS_ADDRESS"
+  timeout 5 dbus-send --session --print-reply --dest=org.freedesktop.DBus / org.freedesktop.DBus.ListNames 2>&1 | tr -s ' \n' ' ' | cut -c1-300 | sed 's/^/   /'
+  echo
+}
+
 log() { sed -u "s/^/[$1] /"; }
 
 # Χωρίς xfce4-session: ξεκινάμε τα κομμάτια του XFCE ένα-ένα
@@ -46,6 +69,7 @@ manual_xfce() {
   ps -eo pid,args | grep -E "xfwm4|xfdesktop|xfce4-panel|xfsettingsd" | grep -v grep | grep -v sed | sed 's/^/   /'
   sleep 5
   python3 /usr/local/bin/freenux-xtest --tree 2>&1
+  diag_stuck
   wait
 }
 
