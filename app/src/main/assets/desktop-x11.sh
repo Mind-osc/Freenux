@@ -13,12 +13,12 @@ mkdir -p "$XDG_RUNTIME_DIR" && chmod 700 "$XDG_RUNTIME_DIR"
 
 bash /usr/local/bin/freenux-mint || echo "(η εμφάνιση Mint θα ξαναδοκιμαστεί στην επόμενη εκκίνηση)"
 . /usr/local/bin/freenux-audio
-. /usr/local/bin/freenux-gpu
 pkill -f xfce4-session 2>/dev/null
 
 for i in $(seq 1 150); do [ -e /tmp/.X11-unix/X0 ] && break; sleep 0.2; done
 [ -e /tmp/.X11-unix/X0 ] && echo ">>> X socket OK" || echo ">>> ΣΦΑΛΜΑ: δεν βρέθηκε /tmp/.X11-unix/X0"
 ls -la /tmp/.X11-unix/ 2>&1
+. /usr/local/bin/freenux-gpu   # χρειάζεται τον X server, οπότε μετά το socket
 echo ">>> XFCE στο Termux:X11"
 
 
