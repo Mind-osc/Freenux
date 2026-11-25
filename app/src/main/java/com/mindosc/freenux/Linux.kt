@@ -14,6 +14,7 @@ class Linux(private val ctx: Context) {
 
     val rootfsReady get() = rootfsMarker.exists()
     val setupDone get() = rootfsReady && File(rootfs, "root/.freenux/setup.done").exists()
+    val updateDone get() = File(rootfs, "root/.freenux/update.v2").exists()
     val claudeDone get() = File(rootfs, "root/.freenux/claude.done").exists()
 
     fun markRootfsReady() = rootfsMarker.writeText("ok")
@@ -34,6 +35,8 @@ class Linux(private val ctx: Context) {
             "desktop.sh" to "freenux-desktop",
             "claude.sh" to "freenux-claude",
             "mint.sh" to "freenux-mint",
+            "update.sh" to "freenux-update",
+            "desktop-x11.sh" to "freenux-desktop-x11",
         )) {
             val f = File(bin, name)
             ctx.assets.open(asset).use { i -> f.outputStream().use { i.copyTo(it) } }

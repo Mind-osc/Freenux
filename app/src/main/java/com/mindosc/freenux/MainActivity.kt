@@ -23,6 +23,8 @@ class MainActivity : Activity() {
     private lateinit var status: TextView
     private lateinit var logView: TextView
     private lateinit var logScroll: ScrollView
+    private lateinit var x11Switch: Switch
+    private lateinit var x11Get: Button
     private val listener: () -> Unit = { runOnUiThread { refresh() } }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,7 +50,7 @@ class MainActivity : Activity() {
         status = text("", 16f, 0xFFF9E2AF.toInt())
         root.addView(status)
 
-        button("① Εγκατάσταση Debian + desktop") { LinuxService.send(this, LinuxService.ACTION_INSTALL) }
+        button("① Εγκατάσταση / Ενημέρωση") { LinuxService.send(this, LinuxService.ACTION_INSTALL) }
         button("Εγκατάσταση Claude Code") { LinuxService.send(this, LinuxService.ACTION_CLAUDE) }
         button("Άνοιγμα desktop εδώ") { openDesktop(Display.DEFAULT_DISPLAY) }
         button("Άνοιγμα στην εξωτερική οθόνη") {
@@ -60,6 +62,21 @@ class MainActivity : Activity() {
         }
         button("Τερματισμός Linux") { LinuxService.send(this, LinuxService.ACTION_STOP) }
         button("Άδειες (αρχεία, πάνω από εφαρμογές, μπαταρία)") { askPermissions() }
+
+        x11Get = button("Κατέβασε Termux:X11 (γρήγορη οθόνη, έως 120Hz)") {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(LinuxService.X11_APK_URL)))
+        }
+        x11Switch = Switch(this).apply {
+            text = "Γρήγορη οθόνη (Termux:X11 αντί για VNC)"
+            setTextColor(0xFFE6E6E6.toInt())
+            setOnCheckedChangeListener { _, on ->
+                if (LinuxService.prefs(this@MainActivity).getBoolean("x11", true) != on) {
+                    LinuxService.prefs(this@MainActivity).edit().putBoolean("x11", on).apply()
+                    LogBus.log(if (on) "Γρήγορη οθόνη: ΝΑΙ – πάτα «Επανεκκίνηση desktop»" else "Γρήγορη οθόνη: ΟΧΙ (VNC) – πάτα «Επανεκκίνηση desktop»")
+                }
+            }
+        }
+        root.addView(x11Switch)
 
         root.addView(Switch(this).apply {
             text = "Αυτόματο desktop όταν συνδέω οθόνη"
@@ -102,12 +119,18 @@ class MainActivity : Activity() {
     }
 
     private fun refresh() {
+        val x11 = LinuxService.x11Installed(this)
+        x11Get.visibility = if (x11) android.view.View.GONE else android.view.View.VISIBLE
+        x11Switch.isEnabled = x11
+        x11Switch.isChecked = LinuxService.useX11(this)
         val inst = when {
+            linux.setupDone && !linux.updateDone -> "υπάρχει ενημέρωση – πάτα ①"
             linux.setupDone -> "εγκατεστημένο" + if (linux.claudeDone) " · Claude Code ✓" else ""
             linux.rootfsReady -> "μισή εγκατάσταση – πάτα ①"
             else -> "όχι ακόμα – πάτα ①"
         }
-        status.text = "Debian: $inst\nΚατάσταση: ${LogBus.state}"
+        val mode = if (LinuxService.useX11(this)) "γρήγορη (Termux:X11)" else "VNC"
+        status.text = "Debian: $inst\nΟθόνη: $mode\nΚατάσταση: ${LogBus.state}"
         logView.text = LogBus.text()
         logScroll.post { logScroll.fullScroll(ScrollView.FOCUS_DOWN) }
     }

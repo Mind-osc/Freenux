@@ -35,6 +35,17 @@ class LinuxService : Service() {
             ctx.startForegroundService(Intent(ctx, LinuxService::class.java).setAction(action))
         }
 
+        const val X11_PKG = "com.termux.x11"
+        const val X11_APK_URL =
+            "https://github.com/termux/termux-x11/releases/download/nightly/termux-x11-universal-release.apk"
+
+        fun x11Installed(ctx: Context) = try {
+            ctx.packageManager.getApplicationInfo(X11_PKG, 0); true
+        } catch (_: Exception) { false }
+
+        /** Γρήγορη οθόνη: native X11 μέσω Termux:X11 αντί για VNC. */
+        fun useX11(ctx: Context) = x11Installed(ctx) && prefs(ctx).getBoolean("x11", true)
+
         fun prefs(ctx: Context) = ctx.getSharedPreferences("freenux", Context.MODE_PRIVATE)
         fun autoEnabled(ctx: Context) = prefs(ctx).getBoolean("auto", true)
 
@@ -46,10 +57,13 @@ class LinuxService : Service() {
 
         /** Ανοίγει το desktop στη συγκεκριμένη οθόνη. */
         fun launchDesktop(ctx: Context, displayId: Int) {
-            val i = Intent(ctx, DesktopActivity::class.java)
+            val i = if (useX11(ctx))
+                Intent().setClassName(X11_PKG, "$X11_PKG.MainActivity")
+            else Intent(ctx, DesktopActivity::class.java)
+            i
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 .putExtra(DesktopActivity.EXTRA_EXTERNAL, displayId != Display.DEFAULT_DISPLAY)
-            if (displayId != Display.DEFAULT_DISPLAY) i.addFlags(Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
+            if (displayId != Display.DEFAULT_DISPLAY && !useX11(ctx)) i.addFlags(Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
             val opts = ActivityOptions.makeBasic().setLaunchDisplayId(displayId)
             try { ctx.startActivity(i, opts.toBundle()) } catch (e: Exception) {
                 LogBus.log("Δεν άνοιξε στην οθόνη $displayId: ${e.message}")
@@ -60,6 +74,7 @@ class LinuxService : Service() {
     private lateinit var linux: Linux
     private lateinit var dm: DisplayManager
     private var desktop: Process? = null
+    private var xserver: Process? = null
     @Volatile private var busy = false
     private var wake: PowerManager.WakeLock? = null
 
@@ -107,6 +122,7 @@ class LinuxService : Service() {
     override fun onDestroy() {
         dm.unregisterDisplayListener(displayListener)
         desktop?.destroy()
+        xserver?.destroy()
         wake?.let { if (it.isHeld) it.release() }
         super.onDestroy()
     }
@@ -127,8 +143,17 @@ class LinuxService : Service() {
         if (!linux.setupDone) {
             LogBus.log("Ρύθμιση Debian + XFCE + Firefox (χρειάζεται ίντερνετ, ~1–1.5 GB)…")
             val code = linux.run("bash /usr/local/bin/freenux-setup")
-            LogBus.log(if (code == 0) "✓ Εγκατάσταση ολοκληρώθηκε" else "✗ Η ρύθμιση σταμάτησε (κωδικός $code). Πάτα ξανά Εγκατάσταση για συνέχεια.")
-        } else LogBus.log("Ήδη εγκατεστημένο.")
+            if (code != 0) {
+                LogBus.log("✗ Η ρύθμιση σταμάτησε (κωδικός $code). Πάτα ξανά ① για συνέχεια.")
+                return
+            }
+            LogBus.log("✓ Βασική εγκατάσταση ολοκληρώθηκε")
+        }
+        if (!linux.updateDone) {
+            LogBus.log("Ενημέρωση: εφαρμογή Claude, θέματα, εικονίδια, φόντα…")
+            val code = linux.run("bash /usr/local/bin/freenux-update")
+            LogBus.log(if (code == 0) "✓ Όλα έτοιμα" else "✗ Η ενημέρωση σταμάτησε (κωδικός $code). Πάτα ξανά ①.")
+        } else LogBus.log("Όλα εγκατεστημένα και ενημερωμένα.")
     }
 
     @Synchronized
@@ -137,15 +162,19 @@ class LinuxService : Service() {
         if (!linux.setupDone) { LogBus.log("Κάνε πρώτα «Εγκατάσταση»."); return }
         linux.prepareHostFiles()
         LogBus.setState("Ξεκινάει…")
-        val p = linux.command("/usr/local/bin/freenux-desktop").start()
+        val x11 = useX11(this)
+        if (x11 && !startXServer()) return
+        LogBus.log(if (x11) ">>> Λειτουργία: γρήγορη οθόνη (Termux:X11)" else ">>> Λειτουργία: συμβατή (VNC)")
+        val p = linux.command(if (x11) "/usr/local/bin/freenux-desktop-x11" else "/usr/local/bin/freenux-desktop").start()
         desktop = p
-        wake = (getSystemService(POWER_SERVICE) as PowerManager)
+        if (wake?.isHeld != true) wake = (getSystemService(POWER_SERVICE) as PowerManager)
             .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "freenux:desktop").apply { acquire() }
         thread { p.inputStream.bufferedReader().forEachLine { LogBus.log(it) } }
+        val x0 = java.io.File(linux.rootfs, "tmp/.X11-unix/X0")
         thread {
-            for (i in 0 until 600) {
+            for (i in 0 until 3000) {
                 if (!p.isAlive) break
-                if (Linux.portOpen(Linux.NOVNC_PORT)) {
+                if (if (x11) x0.exists() else Linux.portOpen(Linux.NOVNC_PORT)) {
                     desktopRunning = true
                     LogBus.setState("Τρέχει")
                     updateNotification("Το desktop τρέχει")
@@ -154,6 +183,7 @@ class LinuxService : Service() {
                 Thread.sleep(200)
             }
             val code = p.waitFor()
+            if (desktop !== p && desktop != null) return@thread // έγινε επανεκκίνηση
             desktopRunning = false
             wake?.let { if (it.isHeld) it.release() }
             LogBus.log("Το desktop σταμάτησε ($code)")
@@ -162,14 +192,39 @@ class LinuxService : Service() {
         }
     }
 
+    /** Ξεκινάει τον X server του Termux:X11 με socket μέσα στο /tmp του Debian. */
+    private fun startXServer(): Boolean {
+        if (xserver?.isAlive == true) return true
+        val apk = try { packageManager.getApplicationInfo(X11_PKG, 0).sourceDir } catch (_: Exception) {
+            LogBus.log("Το Termux:X11 δεν είναι εγκατεστημένο."); return false
+        }
+        val tmp = java.io.File(linux.rootfs, "tmp")
+        val sock = java.io.File(tmp, ".X11-unix").apply { mkdirs() }
+        Linux.chmod(sock, "1777")
+        Linux.rm(java.io.File(sock, "X0")); Linux.rm(java.io.File(tmp, ".X0-lock"))
+        val pb = ProcessBuilder("/system/bin/app_process", "-Xnoimage-dex2oat", "/",
+            "--nice-name=freenux-x11", "$X11_PKG.CmdEntryPoint", ":0").redirectErrorStream(true)
+        pb.environment().apply {
+            put("CLASSPATH", apk)
+            put("TMPDIR", tmp.absolutePath)
+            remove("LD_LIBRARY_PATH"); remove("LD_PRELOAD")
+        }
+        LogBus.log(">>> X server (Termux:X11)")
+        val x = pb.start()
+        xserver = x
+        thread { x.inputStream.bufferedReader().forEachLine { LogBus.log("[X11] $it") } }
+        return true
+    }
+
     /** Reset: κλείνει όλο το Linux desktop και το ξεκινάει από την αρχή. */
     private fun restartDesktop() {
         LogBus.log(">>> Επανεκκίνηση desktop")
         LogBus.setState("Επανεκκίνηση…")
-        val old = desktop
+        val old = listOfNotNull(desktop, xserver)
         desktop = null
+        xserver = null
         thread {
-            old?.let {
+            old.forEach {
                 it.destroy()
                 if (!it.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)) it.destroyForcibly()
             }
@@ -181,6 +236,8 @@ class LinuxService : Service() {
     private fun stopDesktop(stopService: Boolean) {
         desktop?.destroy()
         desktop = null
+        xserver?.destroy()
+        xserver = null
         if (stopService) {
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()
