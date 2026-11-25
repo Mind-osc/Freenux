@@ -55,6 +55,9 @@ class MainActivity : Activity() {
             val ext = LinuxService.externalDisplays(this).firstOrNull()
             if (ext == null) LogBus.log("Δεν βρέθηκε εξωτερική οθόνη.") else openDesktop(ext.displayId)
         }
+        button("Επανεκκίνηση desktop (αν κόλλησε / μαύρη οθόνη)") {
+            LinuxService.send(this, LinuxService.ACTION_RESTART)
+        }
         button("Τερματισμός Linux") { LinuxService.send(this, LinuxService.ACTION_STOP) }
         button("Άδειες (αρχεία, πάνω από εφαρμογές, μπαταρία)") { askPermissions() }
 

@@ -39,7 +39,7 @@ class DesktopActivity : Activity() {
         web.loadData(
             "<html><body style='margin:0;background:#111;color:#ccc;font:20px sans-serif;" +
                 "display:flex;align-items:center;justify-content:center;height:100vh'>" +
-                "Ξεκινάει το Debian…</body></html>",
+                "Ξεκινάει το Debian… (την πρώτη φορά με Mint θέλει 1–2 λεπτά)</body></html>",
             "text/html; charset=utf-8", null
         )
 
@@ -49,11 +49,12 @@ class DesktopActivity : Activity() {
         // Εξωτερική οθόνη: το desktop παίρνει την ανάλυσή της. Κινητό: κλιμάκωση.
         val resize = if (onExternal) "remote" else "scale"
         val url = "http://127.0.0.1:${Linux.NOVNC_PORT}/vnc.html?autoconnect=true&reconnect=true" +
-            "&reconnect_delay=1000&resize=$resize&show_dot=true&path=websockify"
+            "&reconnect_delay=1000&resize=$resize&show_dot=true&path=websockify" +
+            "&quality=5&compression=1"
 
         LinuxService.send(this, LinuxService.ACTION_START)
         thread {
-            for (i in 0 until 900) {
+            for (i in 0 until 2400) {
                 if (!alive) return@thread
                 if (Linux.portOpen(Linux.NOVNC_PORT)) {
                     runOnUiThread { web.loadUrl(url); web.requestFocus() }

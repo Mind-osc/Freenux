@@ -33,6 +33,7 @@ class Linux(private val ctx: Context) {
             "setup.sh" to "freenux-setup",
             "desktop.sh" to "freenux-desktop",
             "claude.sh" to "freenux-claude",
+            "mint.sh" to "freenux-mint",
         )) {
             val f = File(bin, name)
             ctx.assets.open(asset).use { i -> f.outputStream().use { i.copyTo(it) } }

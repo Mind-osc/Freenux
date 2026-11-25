@@ -25,6 +25,7 @@ class LinuxService : Service() {
         const val ACTION_START = "start"
         const val ACTION_STOP = "stop"
         const val ACTION_CLAUDE = "claude"
+        const val ACTION_RESTART = "restart"
         private const val CH = "freenux"
 
         @Volatile var desktopRunning = false
@@ -97,6 +98,7 @@ class LinuxService : Service() {
                 else LogBus.log("✗ Η εγκατάσταση του Claude Code απέτυχε (δες το log)")
             }
             ACTION_START -> startDesktop()
+            ACTION_RESTART -> restartDesktop()
             ACTION_STOP -> stopDesktop(stopService = !autoEnabled(this))
         }
         return START_STICKY
@@ -157,6 +159,22 @@ class LinuxService : Service() {
             LogBus.log("Το desktop σταμάτησε ($code)")
             LogBus.setState("Σταματημένο")
             updateNotification("Σε αναμονή για οθόνη")
+        }
+    }
+
+    /** Reset: κλείνει όλο το Linux desktop και το ξεκινάει από την αρχή. */
+    private fun restartDesktop() {
+        LogBus.log(">>> Επανεκκίνηση desktop")
+        LogBus.setState("Επανεκκίνηση…")
+        val old = desktop
+        desktop = null
+        thread {
+            old?.let {
+                it.destroy()
+                if (!it.waitFor(5, java.util.concurrent.TimeUnit.SECONDS)) it.destroyForcibly()
+            }
+            for (i in 0 until 25) { if (!Linux.portOpen(Linux.NOVNC_PORT)) break; Thread.sleep(200) }
+            startDesktop()
         }
     }
 

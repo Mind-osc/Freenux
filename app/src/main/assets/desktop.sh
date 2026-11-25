@@ -6,6 +6,10 @@ export PATH="/root/.local/bin:$PATH"
 export XDG_RUNTIME_DIR=/tmp/runtime-root
 mkdir -p "$XDG_RUNTIME_DIR" && chmod 700 "$XDG_RUNTIME_DIR"
 
+# Εμφάνιση Mint (μία φορά· αν αποτύχει, συνεχίζουμε κανονικά)
+bash /usr/local/bin/freenux-mint || echo "(η εμφάνιση Mint θα ξαναδοκιμαστεί στην επόμενη εκκίνηση)"
+
+pkill -f Xtigervnc 2>/dev/null; pkill -f xfce4-session 2>/dev/null
 rm -f /tmp/.X1-lock /tmp/.X11-unix/X1
 mkdir -p /tmp/.X11-unix && chmod 1777 /tmp/.X11-unix
 
@@ -15,8 +19,15 @@ Xtigervnc :1 -geometry "${GEOM:-1920x1080}" -depth 24 -desktop Freenux \
 
 for i in $(seq 1 100); do [ -e /tmp/.X11-unix/X1 ] && break; sleep 0.2; done
 
+# XFCE: αν κάνεις Log Out ή κρασάρει, ξεκινάει πάλι μόνο του (όχι μαύρη οθόνη)
 echo ">>> XFCE"
-dbus-launch --exit-with-session startxfce4 >/tmp/xfce.log 2>&1 &
+(
+  while [ -e /tmp/.X11-unix/X1 ]; do
+    dbus-launch --exit-with-session startxfce4 >/tmp/xfce.log 2>&1
+    echo ">>> Η συνεδρία XFCE έκλεισε – επανεκκίνηση"
+    sleep 1
+  done
+) &
 
 echo ">>> noVNC :6080"
 exec python3 -m websockify --web /usr/share/novnc 127.0.0.1:6080 127.0.0.1:5901
