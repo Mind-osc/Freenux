@@ -107,6 +107,26 @@ class MainActivity : Activity() {
             }
         })
 
+        root.addView(LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            fun small(t: String, f: () -> Unit) = Button(this@MainActivity).apply {
+                text = t; isAllCaps = false; setOnClickListener { f() }
+                this@apply.addView(this, LinearLayout.LayoutParams(0, WRAP_CONTENT, 1f))
+            }
+            small("📋 Αντιγραφή log") {
+                val cm = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                cm.setPrimaryClip(android.content.ClipData.newPlainText("Freenux log", LogBus.text()))
+                android.widget.Toast.makeText(this@MainActivity, "Το log αντιγράφηκε", android.widget.Toast.LENGTH_SHORT).show()
+            }
+            small("📤 Κοινοποίηση log") {
+                startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).apply {
+                    type = "text/plain"
+                    putExtra(Intent.EXTRA_SUBJECT, "Freenux log")
+                    putExtra(Intent.EXTRA_TEXT, LogBus.text())
+                }, "Κοινοποίηση log"))
+            }
+        }, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT).apply { topMargin = pad / 2 })
+
         logView = TextView(this).apply {
             typeface = Typeface.MONOSPACE; textSize = 11f; setTextColor(0xFFB0B8C8.toInt())
             setTextIsSelectable(true)
@@ -116,7 +136,7 @@ class MainActivity : Activity() {
             setBackgroundColor(0xFF11141B.toInt())
             setPadding(pad / 2, pad / 2, pad / 2, pad / 2)
         }
-        root.addView(logScroll, LinearLayout.LayoutParams(MATCH_PARENT, 0, 1f).apply { topMargin = pad })
+        root.addView(logScroll, LinearLayout.LayoutParams(MATCH_PARENT, 0, 1f).apply { topMargin = pad / 2 })
         setContentView(root)
 
         if (LinuxService.autoEnabled(this)) {
