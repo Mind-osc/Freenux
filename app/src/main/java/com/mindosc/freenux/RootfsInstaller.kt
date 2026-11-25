@@ -3,7 +3,6 @@ package com.mindosc.freenux
 import android.content.Context
 import android.system.Os
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
-import org.json.JSONArray
 import org.tukaani.xz.XZInputStream
 import java.io.BufferedInputStream
 import java.io.File
@@ -11,8 +10,9 @@ import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
+import java.util.zip.GZIPInputStream
 
-/** Κατεβάζει το Debian rootfs (από τα releases του proot-distro) και το αποσυμπιέζει. */
+/** Κατεβάζει το επίσημο Debian rootfs και το αποσυμπιέζει. */
 class RootfsInstaller(private val ctx: Context, private val linux: Linux) {
 
     fun install() {
@@ -43,26 +43,22 @@ class RootfsInstaller(private val ctx: Context, private val linux: Linux) {
             instanceFollowRedirects = true
         }
 
+    /** Επίσημο Debian rootfs (debuerreotype – το ίδιο που χρησιμοποιεί το Docker). */
     private fun findTarball(): Pair<String, String> {
         LogBus.log("Αναζήτηση Debian rootfs…")
-        val c = open("https://api.github.com/repos/termux/proot-distro/releases?per_page=10")
-        c.setRequestProperty("Accept", "application/vnd.github+json")
-        val releases = JSONArray(c.inputStream.bufferedReader().readText())
-        val re = Regex("^debian-([a-z]+)-aarch64-pd-.*\\.tar\\.xz$")
-        for (i in 0 until releases.length()) {
-            val assets = releases.getJSONObject(i).getJSONArray("assets")
-            var best: Pair<String, String>? = null
-            for (j in 0 until assets.length()) {
-                val a = assets.getJSONObject(j)
-                val n = a.getString("name")
-                val m = re.matchEntire(n) ?: continue
-                val p = n to a.getString("browser_download_url")
-                if (m.groupValues[1] == "trixie") return p
-                if (best == null) best = p
-            }
-            if (best != null) return best
+        val path = "debuerreotype/docker-debian-artifacts/dist-arm64v8/trixie/oci/blobs/rootfs.tar.gz"
+        val urls = listOf(
+            "https://raw.githubusercontent.com/$path",
+            "https://github.com/" + path.replaceFirst("/dist-arm64v8/", "/raw/dist-arm64v8/"),
+        )
+        for (u in urls) {
+            try {
+                val c = open(u).apply { requestMethod = "HEAD" }
+                if (c.responseCode in 200..299) return "debian-trixie-arm64.tar.gz" to u
+                LogBus.log("$u → HTTP ${c.responseCode}")
+            } catch (e: Exception) { LogBus.log("$u → ${e.message}") }
         }
-        error("Δεν βρέθηκε Debian rootfs για arm64")
+        error("Δεν βρέθηκε Debian rootfs για arm64 (έλεγξε το ίντερνετ)")
     }
 
     private fun download(url: String, out: File) {
@@ -103,7 +99,12 @@ class RootfsInstaller(private val ctx: Context, private val linux: Linux) {
             return n
         }
 
-        TarArchiveInputStream(XZInputStream(BufferedInputStream(FileInputStream(file), 1 shl 16))).use { tar ->
+        val raw = BufferedInputStream(FileInputStream(file), 1 shl 16)
+        raw.mark(4)
+        val b0 = raw.read(); val b1 = raw.read()
+        raw.reset()
+        val unpacked = if (b0 == 0x1f && b1 == 0x8b) GZIPInputStream(raw, 1 shl 16) else XZInputStream(raw)
+        TarArchiveInputStream(unpacked).use { tar ->
             while (true) {
                 val e = tar.nextEntry ?: break
                 if (first) {
