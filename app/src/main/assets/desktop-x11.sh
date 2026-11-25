@@ -43,7 +43,9 @@ manual_xfce() {
   xfce4-panel 2>&1 | log panel &
   sleep 3
   echo ">>> [διάγνωση] διεργασίες:"
-  ps -eo pid,args | grep -E "xfwm4|xfdesktop|xfce4-panel|xfsettingsd" | grep -v grep | sed 's/^/   /'
+  ps -eo pid,args | grep -E "xfwm4|xfdesktop|xfce4-panel|xfsettingsd" | grep -v grep | grep -v sed | sed 's/^/   /'
+  sleep 5
+  python3 /usr/local/bin/freenux-xtest --tree 2>&1
   wait
 }
 
@@ -56,6 +58,7 @@ while [ -e /tmp/.X11-unix/X0 ]; do
   for i in $(seq 1 15); do pgrep -x xfwm4 >/dev/null && break; sleep 1; done
   if pgrep -x xfwm4 >/dev/null; then
     echo ">>> XFCE ξεκίνησε ✓"
+    sleep 5; python3 /usr/local/bin/freenux-xtest --tree 2>&1
     wait $SESS
   else
     echo ">>> Το xfce4-session κόλλησε – εναλλακτική εκκίνηση"
