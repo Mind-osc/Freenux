@@ -121,7 +121,12 @@ class LinuxService : Service() {
             ACTION_RESTART -> restartDesktop()
             ACTION_BACKUP -> background("Backup…") {
                 if (!linux.setupDone) LogBus.log("Δεν υπάρχει εγκατάσταση για backup.")
-                else linux.run("bash /usr/local/bin/freenux-backup")
+                else {
+                    val dir = BACKUP_FILE.parentFile!!
+                    dir.mkdirs()
+                    if (!dir.canWrite()) LogBus.log("✗ Δεν έχω πρόσβαση στα αρχεία του κινητού – πάτα «Άδειες» και δώσε πρόσβαση στα αρχεία")
+                    else Backup.create(linux.rootfs, BACKUP_FILE)
+                }
             }
             ACTION_RESTORE -> background("Επαναφορά…") {
                 if (!BACKUP_FILE.canRead()) {
