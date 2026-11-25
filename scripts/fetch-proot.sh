@@ -12,7 +12,7 @@ fi
 
 pkgfile() { awk -v p="$1" '$1=="Package:"{cur=$2} $1=="Filename:" && cur==p {print $2; exit}' "$WORK/Packages"; }
 
-for p in proot libtalloc; do
+for p in proot libtalloc libandroid-shmem; do
   f=$(pkgfile "$p"); [ -n "$f" ] || { echo "Δεν βρέθηκε πακέτο $p"; exit 1; }
   echo "→ $p: $f"
   curl -fsSL "$REPO/$f" -o "$WORK/$p.deb"
@@ -23,11 +23,15 @@ P="$WORK/root/data/data/com.termux/files/usr"
 mkdir -p "$OUT"
 cp -L "$P/bin/proot" "$OUT/libproot.so"
 cp -L "$P/libexec/proot/loader" "$OUT/libproot-loader.so"
-cp -L "$(ls "$P"/lib/libtalloc.so* | head -1)" "$OUT/libtalloc.so"
-
-patchelf --set-soname libtalloc.so "$OUT/libtalloc.so"
-for n in $(patchelf --print-needed "$OUT/libproot.so" | grep talloc); do
-  patchelf --replace-needed "$n" libtalloc.so "$OUT/libproot.so"
+# Termux libs που χρειάζεται το proot → lib<όνομα>.so με σωστό soname
+for lib in talloc android-shmem; do
+  src=$(ls "$P"/lib/lib$lib.so* | head -1)
+  cp -L "$src" "$OUT/lib$lib.so"
+  patchelf --set-soname "lib$lib.so" "$OUT/lib$lib.so"
+  patchelf --remove-rpath "$OUT/lib$lib.so" || true
+  for n in $(patchelf --print-needed "$OUT/libproot.so" | grep -F "lib$lib.so"); do
+    [ "$n" = "lib$lib.so" ] || patchelf --replace-needed "$n" "lib$lib.so" "$OUT/libproot.so"
+  done
 done
 patchelf --remove-rpath "$OUT/libproot.so" || true
 chmod 755 "$OUT"/*.so
