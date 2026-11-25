@@ -43,6 +43,21 @@ class RootfsInstaller(private val ctx: Context, private val linux: Linux) {
             instanceFollowRedirects = true
         }
 
+    /** Επαναφορά όλου του Linux από backup (.tar.gz). */
+    fun restore(backup: File) {
+        LogBus.log("Επαναφορά από ${backup.name} (${backup.length() shr 20} MB)…")
+        linux.clearRootfsMarker()
+        if (linux.rootfs.exists()) {
+            Runtime.getRuntime().exec(arrayOf("chmod", "-R", "u+rwX", linux.rootfs.path)).waitFor()
+            Runtime.getRuntime().exec(arrayOf("rm", "-rf", linux.rootfs.path)).waitFor()
+        }
+        linux.rootfs.mkdirs()
+        extract(backup, linux.rootfs)
+        linux.prepareHostFiles()
+        linux.markRootfsReady()
+        LogBus.log("✓ Επαναφορά ολοκληρώθηκε")
+    }
+
     /** Επίσημο Debian rootfs (debuerreotype – το ίδιο που χρησιμοποιεί το Docker). */
     private fun findTarball(): Pair<String, String> {
         LogBus.log("Αναζήτηση Debian rootfs…")

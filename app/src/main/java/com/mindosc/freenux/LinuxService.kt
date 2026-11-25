@@ -26,6 +26,10 @@ class LinuxService : Service() {
         const val ACTION_STOP = "stop"
         const val ACTION_CLAUDE = "claude"
         const val ACTION_RESTART = "restart"
+        const val ACTION_BACKUP = "backup"
+        const val ACTION_RESTORE = "restore"
+        val BACKUP_FILE = java.io.File("/storage/emulated/0/Freenux/freenux-backup.tar.gz")
+        fun gpuEnabled(ctx: Context) = prefs(ctx).getBoolean("gpu", false)
         private const val CH = "freenux"
 
         @Volatile var desktopRunning = false
@@ -115,6 +119,19 @@ class LinuxService : Service() {
             }
             ACTION_START -> startDesktop()
             ACTION_RESTART -> restartDesktop()
+            ACTION_BACKUP -> background("Backup…") {
+                if (!linux.setupDone) LogBus.log("Δεν υπάρχει εγκατάσταση για backup.")
+                else linux.run("bash /usr/local/bin/freenux-backup")
+            }
+            ACTION_RESTORE -> background("Επαναφορά…") {
+                if (!BACKUP_FILE.canRead()) {
+                    LogBus.log("✗ Δεν βρέθηκε backup στο /sdcard/Freenux (ή λείπει η άδεια αρχείων)")
+                } else {
+                    stopDesktop(stopService = false)
+                    Thread.sleep(1500)
+                    RootfsInstaller(this, linux).restore(BACKUP_FILE)
+                }
+            }
             ACTION_STOP -> stopDesktop(stopService = !autoEnabled(this))
         }
         return START_STICKY
@@ -163,6 +180,7 @@ class LinuxService : Service() {
         if (desktop?.isAlive == true) return
         if (!linux.setupDone) { LogBus.log("Κάνε πρώτα «Εγκατάσταση»."); return }
         linux.prepareHostFiles()
+        linux.setGpu(gpuEnabled(this))
         LogBus.setState("Ξεκινάει…")
         val x11 = useX11(this)
         if (x11 && !startXServer()) return

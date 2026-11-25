@@ -61,6 +61,16 @@ class MainActivity : Activity() {
             LinuxService.send(this, LinuxService.ACTION_RESTART)
         }
         button("Τερματισμός Linux") { LinuxService.send(this, LinuxService.ACTION_STOP) }
+        button("Backup στο κινητό (/sdcard/Freenux)") {
+            confirm("Backup", "Αποθήκευση όλου του Linux στο /sdcard/Freenux. Θέλει 10–20 λεπτά και αρκετό χώρο.") {
+                LinuxService.send(this, LinuxService.ACTION_BACKUP)
+            }
+        }
+        button("Επαναφορά από backup") {
+            confirm("Επαναφορά", "Το τωρινό Linux θα σβηστεί και θα αντικατασταθεί από το backup στο /sdcard/Freenux. Συνέχεια;") {
+                LinuxService.send(this, LinuxService.ACTION_RESTORE)
+            }
+        }
         button("Άδειες (αρχεία, πάνω από εφαρμογές, μπαταρία)") { askPermissions() }
 
         x11Get = button("Κατέβασε Termux:X11 (γρήγορη οθόνη, έως 120Hz)") {
@@ -77,6 +87,15 @@ class MainActivity : Activity() {
             }
         }
         root.addView(x11Switch)
+        root.addView(Switch(this).apply {
+            text = "GPU επιτάχυνση (πειραματικό)"
+            setTextColor(0xFFE6E6E6.toInt())
+            isChecked = LinuxService.gpuEnabled(this@MainActivity)
+            setOnCheckedChangeListener { _, on ->
+                LinuxService.prefs(this@MainActivity).edit().putBoolean("gpu", on).apply()
+                LogBus.log("GPU: " + (if (on) "ΝΑΙ" else "ΟΧΙ") + " – πάτα «Επανεκκίνηση desktop»")
+            }
+        })
 
         root.addView(Switch(this).apply {
             text = "Αυτόματο desktop όταν συνδέω οθόνη"
@@ -139,6 +158,14 @@ class MainActivity : Activity() {
         if (!linux.setupDone) { LogBus.log("Κάνε πρώτα «Εγκατάσταση»."); return }
         LinuxService.send(this, LinuxService.ACTION_START)
         LinuxService.launchDesktop(this, displayId)
+    }
+
+    private fun confirm(title: String, msg: String, ok: () -> Unit) {
+        android.app.AlertDialog.Builder(this)
+            .setTitle(title).setMessage(msg)
+            .setPositiveButton("Ναι") { _, _ -> ok() }
+            .setNegativeButton("Όχι", null)
+            .show()
     }
 
     private fun askPermissions() {

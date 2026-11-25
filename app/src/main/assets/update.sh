@@ -1,7 +1,7 @@
 #!/bin/bash
-# Freenux ενημέρωση v2: εφαρμογή Claude, θέματα, εικονίδια, φόντα, native X11
+# Freenux ενημερώσεις: v2 Claude/θέματα/φόντα, v3 ήχος, v4 πληκτρολόγιο/κατάστημα/GPU
 set -e
-V=/root/.freenux/update.v3
+V=/root/.freenux/update.v4
 [ -f "$V" ] && { echo ">>> Όλα ενημερωμένα"; exit 0; }
 export DEBIAN_FRONTEND=noninteractive
 mkdir -p /root/.freenux
@@ -90,9 +90,55 @@ EOF
 touch /root/.freenux/update.v2
 fi
 
+if [ ! -f /root/.freenux/update.v3 ]; then
 echo ">>> Ενημέρωση: ήχος (PulseAudio + ένταση στο panel)"
 apt-get update
 apt-get install -y pulseaudio pulseaudio-utils pavucontrol xfce4-pulseaudio-plugin
+touch /root/.freenux/update.v3
+fi
+
+echo ">>> Ενημέρωση: ελληνικό πληκτρολόγιο, κατάστημα εφαρμογών, backup, GPU"
+apt-get update
+apt-get install -y x11-xkb-utils xfce4-xkb-plugin synaptic pigz
+for p in mesa-vulkan-drivers vulkan-tools mesa-utils; do apt-get install -y "$p" || echo "(παράλειψη $p)"; done
+
+# Πληκτρολόγιο EN/ΕΛ με Alt+Shift (μόνο αν δεν το έχεις ρυθμίσει ήδη)
+X=/root/.config/xfce4/xfconf/xfce-perchannel-xml
+mkdir -p "$X"
+[ -f "$X/keyboard-layout.xml" ] || cat > "$X/keyboard-layout.xml" <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<channel name="keyboard-layout" version="1.0">
+  <property name="Default" type="empty">
+    <property name="XkbDisable" type="bool" value="false"/>
+    <property name="XkbLayout" type="string" value="us,gr"/>
+    <property name="XkbVariant" type="string" value=","/>
+    <property name="XkbOptions" type="empty">
+      <property name="Group" type="string" value="grp:alt_shift_toggle"/>
+    </property>
+  </property>
+</channel>
+EOF
+mkdir -p /root/.config/autostart
+cat > /root/.config/autostart/freenux-keyboard.desktop <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Freenux πληκτρολόγιο
+Exec=sh -c "setxkbmap -layout us,gr -option grp:alt_shift_toggle; sleep 8; [ -f /root/.freenux/xkb-panel ] || { xfce4-panel --add=xkb && touch /root/.freenux/xkb-panel; }"
+NoDisplay=true
+EOF
+
+# Κατάστημα: Synaptic χωρίς pkexec (είμαστε ήδη root μέσα στο Linux)
+cat > /usr/share/applications/freenux-store.desktop <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Κατάστημα εφαρμογών
+Comment=Εγκατάσταση προγραμμάτων (Synaptic)
+Exec=synaptic
+Icon=synaptic
+Categories=System;Settings;
+EOF
+mkdir -p /root/.local/share/applications
+printf '[Desktop Entry]\nType=Application\nName=Synaptic\nNoDisplay=true\n' > /root/.local/share/applications/synaptic.desktop
 
 apt-get clean
 touch "$V"

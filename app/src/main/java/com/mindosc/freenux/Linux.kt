@@ -14,14 +14,21 @@ class Linux(private val ctx: Context) {
 
     val rootfsReady get() = rootfsMarker.exists()
     val setupDone get() = rootfsReady && File(rootfs, "root/.freenux/setup.done").exists()
-    val updateDone get() = File(rootfs, "root/.freenux/update.v3").exists()
+    val updateDone get() = File(rootfs, "root/.freenux/update.v4").exists()
     val claudeDone get() = File(rootfs, "root/.freenux/claude.done").exists()
+
+    /** Διακόπτης GPU: αρχείο-σημάδι που διαβάζει το gpu.sh μέσα στο Linux. */
+    fun setGpu(on: Boolean) {
+        val f = File(rootfs, "root/.freenux/gpu.on")
+        if (on) { f.parentFile?.mkdirs(); f.writeText("1") } else f.delete()
+    }
 
     fun markRootfsReady() = rootfsMarker.writeText("ok")
     fun clearRootfsMarker() = rootfsMarker.delete()
 
     /** Αρχεία που γράφει το Android μέσα στο rootfs πριν από κάθε εκκίνηση. */
     fun prepareHostFiles() {
+        listOf("dev", "proc", "sys", "sdcard").forEach { File(rootfs, it).mkdirs() } // σημεία bind (λείπουν μετά από επαναφορά)
         val tmp = File(rootfs, "tmp").apply { mkdirs() }
         chmod(tmp, "1777")
         val etc = File(rootfs, "etc").apply { mkdirs() }
@@ -39,6 +46,8 @@ class Linux(private val ctx: Context) {
             "desktop-x11.sh" to "freenux-desktop-x11",
             "xtest.py" to "freenux-xtest",
             "audio.sh" to "freenux-audio",
+            "gpu.sh" to "freenux-gpu",
+            "backup.sh" to "freenux-backup",
         )) {
             val f = File(bin, name)
             ctx.assets.open(asset).use { i -> f.outputStream().use { i.copyTo(it) } }
