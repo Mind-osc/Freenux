@@ -37,6 +37,7 @@ class Linux(private val ctx: Context) {
             "mint.sh" to "freenux-mint",
             "update.sh" to "freenux-update",
             "desktop-x11.sh" to "freenux-desktop-x11",
+            "xtest.py" to "freenux-xtest",
         )) {
             val f = File(bin, name)
             ctx.assets.open(asset).use { i -> f.outputStream().use { i.copyTo(it) } }

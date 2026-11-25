@@ -29,6 +29,8 @@ except Exception as e:
     print(">>> [τεστ X] ΣΦΑΛΜΑ: %s" % e)
 PY
 
+python3 /usr/local/bin/freenux-xtest 2>&1
+
 log() { sed -u "s/^/[$1] /"; }
 
 # Χωρίς xfce4-session: ξεκινάμε τα κομμάτια του XFCE ένα-ένα
