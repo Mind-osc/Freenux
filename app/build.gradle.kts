@@ -20,10 +20,12 @@ android {
     // Σταθερό κλειδί υπογραφής: τα νέα APK εγκαθίστανται πάνω από τα παλιά
     signingConfigs {
         create("freenux") {
+            // Το κλειδί αποκρυπτογραφείται στο CI με το secret FREENUX_KEY_PASSWORD
+            val pw = System.getenv("FREENUX_KEY_PASSWORD") ?: ""
             storeFile = file("freenux.keystore")
-            storePassword = "freenux"
+            storePassword = pw
             keyAlias = "freenux"
-            keyPassword = "freenux"
+            keyPassword = pw
         }
     }
     buildTypes {
