@@ -10,11 +10,13 @@ bash /usr/local/bin/freenux-mint || echo "(η εμφάνιση Mint θα ξαν�
 pkill -f xfce4-session 2>/dev/null
 
 for i in $(seq 1 150); do [ -e /tmp/.X11-unix/X0 ] && break; sleep 0.2; done
+[ -e /tmp/.X11-unix/X0 ] && echo ">>> X socket OK" || echo ">>> ΣΦΑΛΜΑ: δεν βρέθηκε /tmp/.X11-unix/X0"
+ls -la /tmp/.X11-unix/ 2>&1
 echo ">>> XFCE στο Termux:X11"
 
 # Αν κάνεις Log Out ή κρασάρει, ξεκινάει πάλι μόνο του
 while [ -e /tmp/.X11-unix/X0 ]; do
-  dbus-launch --exit-with-session startxfce4 >/tmp/xfce.log 2>&1
+  dbus-launch --exit-with-session startxfce4 2>&1 | tee /tmp/xfce.log | sed -u 's/^/[xfce] /' 
   echo ">>> Η συνεδρία XFCE έκλεισε – επανεκκίνηση"
   sleep 1
 done
