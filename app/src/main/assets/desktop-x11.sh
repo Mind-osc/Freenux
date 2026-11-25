@@ -18,20 +18,6 @@ for i in $(seq 1 150); do [ -e /tmp/.X11-unix/X0 ] && break; sleep 0.2; done
 ls -la /tmp/.X11-unix/ 2>&1
 echo ">>> XFCE στο Termux:X11"
 
-# Τεστ: απαντάει ο X server;
-python3 - <<'PY'
-import socket, struct
-try:
-    s = socket.socket(socket.AF_UNIX); s.settimeout(5)
-    s.connect("/tmp/.X11-unix/X0")
-    s.send(struct.pack("<BxHHHH2x", 0x6C, 11, 0, 0, 0))
-    d = s.recv(8)
-    print(">>> [τεστ X] " + ("απαντάει ✓" if d and d[0] == 1 else "απάντησε λάθος: %r" % d))
-except Exception as e:
-    print(">>> [τεστ X] ΣΦΑΛΜΑ: %s" % e)
-PY
-
-python3 /usr/local/bin/freenux-xtest 2>&1
 
 # Πού έχει κολλήσει κάθε πρόγραμμα του XFCE
 diag_stuck() {
@@ -69,8 +55,7 @@ manual_xfce() {
   sleep 3
   echo ">>> [διάγνωση] διεργασίες:"
   ps -eo pid,args | grep -E "xfwm4|xfdesktop|xfce4-panel|xfsettingsd" | grep -v grep | grep -v sed | sed 's/^/   /'
-  sleep 5
-  python3 /usr/local/bin/freenux-xtest --tree 2>&1
+  sleep 10
   diag_stuck
   wait
 }
@@ -84,7 +69,6 @@ while [ -e /tmp/.X11-unix/X0 ]; do
   for i in $(seq 1 15); do pgrep -x xfwm4 >/dev/null && break; sleep 1; done
   if pgrep -x xfwm4 >/dev/null; then
     echo ">>> XFCE ξεκίνησε ✓"
-    sleep 5; python3 /usr/local/bin/freenux-xtest --tree 2>&1
     wait $SESS
   else
     echo ">>> Το xfce4-session κόλλησε – εναλλακτική εκκίνηση"
