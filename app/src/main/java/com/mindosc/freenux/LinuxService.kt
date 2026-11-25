@@ -203,7 +203,9 @@ class LinuxService : Service() {
         Linux.chmod(sock, "1777")
         Linux.rm(java.io.File(sock, "X0")); Linux.rm(java.io.File(tmp, ".X0-lock"))
         val pb = ProcessBuilder("/system/bin/app_process", "-Xnoimage-dex2oat", "/",
-            "--nice-name=freenux-x11", "$X11_PKG.CmdEntryPoint", ":0").redirectErrorStream(true)
+            "--nice-name=freenux-x11", "$X11_PKG.CmdEntryPoint", ":0",
+            // Η κοινή μνήμη (MIT-SHM) δεν περνάει σωστά από το proot και κολλάει τα προγράμματα
+            "-extension", "MIT-SHM").redirectErrorStream(true)
         pb.environment().apply {
             put("CLASSPATH", apk)
             put("TMPDIR", tmp.absolutePath)
