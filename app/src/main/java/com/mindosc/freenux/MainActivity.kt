@@ -132,6 +132,16 @@ class MainActivity : Activity() {
             }
         })
         controls.addView(Switch(this).apply {
+            text = "Desktop στην οθόνη του κινητού στα 120Hz (οριζόντιο, για βάση + Bluetooth πληκτρολόγιο/ποντίκι)"
+            setTextColor(0xFFE6E6E6.toInt())
+            isChecked = LinuxService.prefs(this@MainActivity).getBoolean("phonemode", false)
+            setOnCheckedChangeListener { _, on ->
+                LinuxService.prefs(this@MainActivity).edit().putBoolean("phonemode", on).apply()
+                LogBus.log(if (on) "Desktop στο κινητό: ΝΑΙ (ισχύει από το επόμενο άνοιγμα στην οθόνη του κινητού· χρειάζεται Termux:X11)" else "Desktop στο κινητό: ΟΧΙ (επαναφορά κανονικών ρυθμίσεων Termux:X11)")
+                if (!on) LinuxService.applyX11Mode(this@MainActivity, false)
+            }
+        })
+        controls.addView(Switch(this).apply {
             text = "Touchpad στο κινητό όταν το desktop ανοίγει σε μόνιτορ"
             setTextColor(0xFFE6E6E6.toInt())
             isChecked = LinuxService.prefs(this@MainActivity).getBoolean("touchpad", true)

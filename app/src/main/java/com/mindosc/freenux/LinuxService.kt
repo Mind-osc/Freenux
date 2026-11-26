@@ -64,6 +64,31 @@ class LinuxService : Service() {
             (ctx.getSystemService(DISPLAY_SERVICE) as DisplayManager).displays.filter { isExternal(it) }
 
         /** Ανοίγει το desktop στη συγκεκριμένη οθόνη. */
+        /** Λειτουργία «desktop στο κινητό»: οριζόντια, πλήρης οθόνη, χωρίς μπάρα πλήκτρων. */
+        fun applyX11Mode(ctx: Context, phone: Boolean) {
+            val p = prefs(ctx)
+            if (!phone && !p.getBoolean("phonemode_applied", false)) return
+            val i = Intent("com.termux.x11.CHANGE_PREFERENCE").setPackage(X11_PKG)
+            if (phone) {
+                i.putExtra("forceOrientation", "landscape")
+                    .putExtra("fullscreen", "true")
+                    .putExtra("hideCutout", "true")
+                    .putExtra("showAdditionalKbd", "false")
+                    .putExtra("screenIdleTimeout", "never")
+            } else {
+                i.putExtra("forceOrientation", "auto")
+                    .putExtra("fullscreen", "false")
+                    .putExtra("hideCutout", "false")
+                    .putExtra("showAdditionalKbd", "true")
+                    .putExtra("screenIdleTimeout", "system")
+            }
+            try {
+                ctx.sendBroadcast(i)
+                p.edit().putBoolean("phonemode_applied", phone).apply()
+                if (phone) LogBus.log("Desktop στο κινητό: οριζόντιο, πλήρης οθόνη, χωρίς μπάρα πλήκτρων (120Hz)")
+            } catch (e: Exception) { LogBus.log("Termux:X11 ρυθμίσεις: ${e.message}") }
+        }
+
         fun launchDesktop(ctx: Context, displayId: Int) {
             val i = if (useX11(ctx))
                 Intent().setClassName(X11_PKG, "$X11_PKG.MainActivity")
@@ -73,6 +98,7 @@ class LinuxService : Service() {
                 .putExtra(DesktopActivity.EXTRA_EXTERNAL, displayId != Display.DEFAULT_DISPLAY)
             if (displayId != Display.DEFAULT_DISPLAY && !useX11(ctx)) i.addFlags(Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
             lastDisplayId = displayId
+            if (useX11(ctx)) applyX11Mode(ctx, displayId == Display.DEFAULT_DISPLAY && prefs(ctx).getBoolean("phonemode", false))
             val opts = ActivityOptions.makeBasic().setLaunchDisplayId(displayId)
             try { ctx.startActivity(i, opts.toBundle()) } catch (e: Exception) {
                 LogBus.log("Δεν άνοιξε στην οθόνη $displayId: ${e.message}")

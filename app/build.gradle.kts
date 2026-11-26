@@ -12,8 +12,8 @@ android {
         minSdk = 28
         // targetSdk 28: επιτρέπει εκτέλεση των Linux binaries από τον φάκελο της εφαρμογής (όπως το Termux)
         targetSdk = 28
-        versionCode = 15
-        versionName = "0.11.2"
+        versionCode = 16
+        versionName = "0.12.0"
         ndk { abiFilters += "arm64-v8a" }
     }
 

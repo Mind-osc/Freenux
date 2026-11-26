@@ -11,7 +11,7 @@
 |---|---|
 | 🐧 **Linux** | Debian 13 (trixie) arm64 μέσω proot, ίντερνετ κανονικά |
 | 🖥️ **Desktop** | XFCE με εμφάνιση Linux Mint (Mint-Y), φόντο Freenux, panel κάτω |
-| ⚡ **Οθόνη** | Native X11 μέσω [Termux:X11](https://github.com/termux/termux-x11) έως **120Hz** (ή VNC ως εναλλακτική) |
+| ⚡ **Οθόνη** | Native X11 μέσω [Termux:X11](https://github.com/termux/termux-x11) (ή VNC ως εναλλακτική). **120Hz μόνο στην οθόνη του κινητού** (λειτουργία «Desktop στο κινητό»). Σε εξωτερικό μόνιτορ η Samsung κλειδώνει την έξοδο στα **60Hz** (DeX και κατοπτρισμός) — δεν παρακάμπτεται χωρίς root. |
 | 🎮 **GPU** | Adreno μέσω Turnip/freedreno πάνω σε KGSL ([lfdevs/mesa-for-android-container](https://github.com/lfdevs/mesa-for-android-container)), με αυτόματη επιστροφή σε Zink ή CPU |
 | 🔊 **Ήχος** | PulseAudio → ηχεία/ακουστικά κινητού, ένταση στο panel |
 | ⌨️ **Πληκτρολόγιο** | EN/ΕΛ με Alt+Shift |
