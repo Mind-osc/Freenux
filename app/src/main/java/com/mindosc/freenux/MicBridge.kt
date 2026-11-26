@@ -4,14 +4,14 @@ import android.annotation.SuppressLint
 import android.media.AudioFormat
 import android.media.AudioRecord
 import android.media.MediaRecorder
-import java.net.InetSocketAddress
-import java.net.Socket
+import android.net.LocalSocket
+import android.net.LocalSocketAddress
+import java.io.File
 import kotlin.concurrent.thread
 
-/** Μικρόφωνο κινητού → PulseAudio μέσα στο Linux (TCP 127.0.0.1:4657, 48kHz mono 16-bit). */
-class MicBridge {
+/** Μικρόφωνο κινητού → PulseAudio μέσα στο Linux (unix socket στον ιδιωτικό φάκελο, 48kHz mono 16-bit). */
+class MicBridge(private val sockFile: File) {
     companion object {
-        const val PORT = 4657
         private const val RATE = 48000
     }
 
@@ -31,9 +31,9 @@ class MicBridge {
         var announced = false
         while (running) {
             try {
-                Socket().use { sock ->
-                    sock.connect(InetSocketAddress("127.0.0.1", PORT), 1000)
-                    sock.tcpNoDelay = true
+                if (!sockFile.exists()) throw IllegalStateException("όχι ακόμα")
+                LocalSocket().use { sock ->
+                    sock.connect(LocalSocketAddress(sockFile.absolutePath, LocalSocketAddress.Namespace.FILESYSTEM))
                     val min = AudioRecord.getMinBufferSize(RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
                     val rec = AudioRecord(MediaRecorder.AudioSource.VOICE_COMMUNICATION, RATE,
                         AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, maxOf(min * 2, RATE / 5))
@@ -44,7 +44,7 @@ class MicBridge {
                     try {
                         rec.startRecording()
                         if (!announced) { LogBus.log(">>> Μικρόφωνο κινητού συνδέθηκε ✓"); announced = true }
-                        val out = sock.getOutputStream()
+                        val out = sock.outputStream
                         val buf = ByteArray(1920) // 20 ms
                         while (running) {
                             val n = rec.read(buf, 0, buf.size)

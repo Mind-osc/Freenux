@@ -1,5 +1,5 @@
 #!/bin/bash
-# Freenux ήχος: PulseAudio μέσα στο Linux → TCP 127.0.0.1:4656 → εφαρμογή Android (AudioTrack)
+# Freenux ήχος: PulseAudio μέσα στο Linux → unix socket στον ιδιωτικό φάκελο → εφαρμογή Android (AudioTrack)
 # Γίνεται source από τα scripts του desktop (εξάγει PULSE_SERVER).
 command -v pulseaudio >/dev/null || return 0 2>/dev/null || exit 0
 
@@ -8,9 +8,9 @@ cat > /etc/freenux/pulse.pa <<'EOF'
 load-module module-native-protocol-unix auth-anonymous=1 socket=/tmp/pulse-socket
 load-module module-null-sink sink_name=freenux rate=48000 channels=2 sink_properties=device.description=Ηχεία_κινητού
 set-default-sink freenux
-load-module module-simple-protocol-tcp source=freenux.monitor record=true listen=127.0.0.1 port=4656 rate=48000 format=s16le channels=2
+load-module module-simple-protocol-unix source=freenux.monitor record=true socket=/tmp/freenux-audio.sock rate=48000 format=s16le channels=2
 load-module module-null-sink sink_name=phonemic rate=48000 channels=1 sink_properties=device.description=Είσοδος_μικροφώνου
-load-module module-simple-protocol-tcp sink=phonemic playback=true listen=127.0.0.1 port=4657 rate=48000 format=s16le channels=1
+load-module module-simple-protocol-unix sink=phonemic playback=true socket=/tmp/freenux-mic.sock rate=48000 format=s16le channels=1
 load-module module-remap-source master=phonemic.monitor source_name=phone_mic source_properties=device.description=Μικρόφωνο_κινητού
 set-default-source phone_mic
 set-default-sink freenux
@@ -22,7 +22,7 @@ EOF
 
 pkill -x pulseaudio 2>/dev/null; sleep 0.3; pkill -9 -x pulseaudio 2>/dev/null
 # Παλιά αρχεία από προηγούμενη εκκίνηση κάνουν τον PulseAudio να νομίζει ότι τρέχει ήδη
-rm -rf /tmp/pulse-socket /tmp/pulse-* "${XDG_RUNTIME_DIR:-/tmp/runtime-root}/pulse" /root/.config/pulse/*-runtime /root/.config/pulse/*.pid 2>/dev/null
+rm -rf /tmp/pulse-socket /tmp/pulse-* /tmp/freenux-audio.sock /tmp/freenux-mic.sock "${XDG_RUNTIME_DIR:-/tmp/runtime-root}/pulse" /root/.config/pulse/*-runtime /root/.config/pulse/*.pid 2>/dev/null
 pulseaudio -n -F /etc/freenux/pulse.pa --exit-idle-time=-1 --disallow-exit=yes --use-pid-file=no \
   --disable-shm=yes --realtime=no --high-priority=no --daemonize=yes \
   --log-target=stderr >/tmp/pulse.log 2>&1

@@ -1,7 +1,16 @@
 #!/bin/bash
 # Freenux: εκκίνηση X (TigerVNC) + XFCE + noVNC στο 127.0.0.1:6080
 export DISPLAY=:1 HOME=/root USER=root LANG=C.UTF-8
-export MOZ_FAKE_NO_SANDBOX=1 MOZ_DISABLE_CONTENT_SANDBOX=1 MOZ_DISABLE_GMP_SANDBOX=1
+# Sandbox του Firefox: ανοιχτό αν πέρασε η δοκιμή (freenux-sandbox-test), αλλιώς κλειστό
+if [ -f /root/.freenux/ff-sandbox.ok ]; then
+  unset MOZ_FAKE_NO_SANDBOX MOZ_DISABLE_CONTENT_SANDBOX MOZ_DISABLE_GMP_SANDBOX
+else
+  export MOZ_FAKE_NO_SANDBOX=1 MOZ_DISABLE_CONTENT_SANDBOX=1 MOZ_DISABLE_GMP_SANDBOX=1
+fi
+cat > /etc/profile.d/freenux.sh <<'PROF'
+[ -f /root/.freenux/ff-sandbox.ok ] || export MOZ_FAKE_NO_SANDBOX=1 MOZ_DISABLE_CONTENT_SANDBOX=1 MOZ_DISABLE_GMP_SANDBOX=1
+export PATH="$HOME/.local/bin:$PATH"
+PROF
 export PATH="/root/.local/bin:$PATH"
 export NO_AT_BRIDGE=1  # χωρίς τα μηνύματα AT-SPI
 export XDG_RUNTIME_DIR=/tmp/runtime-root
@@ -23,8 +32,15 @@ rm -f /tmp/.X1-lock /tmp/.X11-unix/X1
 mkdir -p /tmp/.X11-unix && chmod 1777 /tmp/.X11-unix
 
 echo ">>> X server"
+# Κωδικός VNC: τον γράφει η εφαρμογή, ώστε άλλες εφαρμογές του κινητού να μη συνδέονται
+SEC="-SecurityTypes None"
+if [ -s /root/.freenux/vnc.pass ] && command -v vncpasswd >/dev/null; then
+  mkdir -p /root/.vnc && vncpasswd -f < /root/.freenux/vnc.pass > /root/.vnc/passwd && chmod 600 /root/.vnc/passwd \
+    && SEC="-SecurityTypes VncAuth -PasswordFile /root/.vnc/passwd"
+fi
+[ "$SEC" = "-SecurityTypes None" ] && echo ">>> Προσοχή: VNC χωρίς κωδικό (πάτα ① για ενημέρωση)"
 Xtigervnc :1 -geometry "${GEOM:-1920x1080}" -depth 24 -desktop Freenux \
-  -SecurityTypes None -localhost -rfbport 5901 -AlwaysShared -dpi 110 >/tmp/xvnc.log 2>&1 &
+  $SEC -localhost -rfbport 5901 -AlwaysShared -dpi 110 >/tmp/xvnc.log 2>&1 &
 
 for i in $(seq 1 100); do [ -e /tmp/.X11-unix/X1 ] && break; sleep 0.2; done
 

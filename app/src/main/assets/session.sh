@@ -6,6 +6,16 @@
 pkill -f freenux-touchd 2>/dev/null
 python3 /usr/local/bin/freenux-touchd >/tmp/touchd.log 2>&1 &
 
+# Ασφάλεια: δοκιμή sandbox των browsers (μία φορά ανά έκδοση, στο παρασκήνιο)
+( sleep 20; bash /usr/local/bin/freenux-sandbox-test ) >/dev/null 2>&1 &
+
+# Σύνδεσμοι: browser κινητού (ασφαλής) ή Firefox, ανάλογα με τον διακόπτη της εφαρμογής
+if [ -f /root/.freenux/android-browser ] && [ -f /usr/share/applications/freenux-android-browser.desktop ]; then
+  xdg-settings set default-web-browser freenux-android-browser.desktop 2>/dev/null
+else
+  xdg-settings set default-web-browser firefox-esr.desktop 2>/dev/null
+fi
+
 # 1) Ειδοποιήσεις του Android → φούσκες του XFCE
 (
   F=/tmp/freenux-notify

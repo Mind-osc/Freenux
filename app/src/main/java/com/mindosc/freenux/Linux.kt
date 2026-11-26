@@ -14,12 +14,26 @@ class Linux(private val ctx: Context) {
 
     val rootfsReady get() = rootfsMarker.exists()
     val setupDone get() = rootfsReady && File(rootfs, "root/.freenux/setup.done").exists()
-    val updateDone get() = File(rootfs, "root/.freenux/update.v10").exists()
+    val updateDone get() = File(rootfs, "root/.freenux/update.v11").exists()
     val claudeDone get() = File(rootfs, "root/.freenux/claude.done").exists()
 
     /** Διακόπτης GPU: αρχείο-σημάδι που διαβάζει το gpu.sh μέσα στο Linux. */
     fun setGpu(on: Boolean) {
         val f = File(rootfs, "root/.freenux/gpu.on")
+        if (on) { f.parentFile?.mkdirs(); f.writeText("1") } else f.delete()
+    }
+
+    val vncPassword: String by lazy {
+        val f = File(ctx.filesDir, "vnc.token")
+        if (f.length() == 8L) f.readText() else {
+            val abc = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+            val rnd = java.security.SecureRandom()
+            (1..8).map { abc[rnd.nextInt(abc.length)] }.joinToString("").also { f.writeText(it) }
+        }
+    }
+
+    fun setFlag(name: String, on: Boolean) {
+        val f = File(rootfs, "root/.freenux/$name")
         if (on) { f.parentFile?.mkdirs(); f.writeText("1") } else f.delete()
     }
 
@@ -64,6 +78,7 @@ class Linux(private val ctx: Context) {
             "ff2mpv.py" to "freenux-ff2mpv",
             "windows.sh" to "freenux-windows",
             "touchd.py" to "freenux-touchd",
+            "sandbox-test.sh" to "freenux-sandbox-test",
         )) {
             val f = File(bin, name)
             ctx.assets.open(asset).use { i -> f.outputStream().use { i.copyTo(it) } }
@@ -83,6 +98,9 @@ class Linux(private val ctx: Context) {
                 chmod(f, "644")
             }
         }
+
+        // Κωδικός VNC (8 χαρακτήρες, όριο του VNC): μόνο η εφαρμογή και το Linux τον ξέρουν
+        File(rootfs, "root/.freenux/vnc.pass").let { it.parentFile?.mkdirs(); it.writeText(vncPassword); chmod(it, "600") }
 
         val fake = File(rootfs, ".freenux-proc").apply { mkdirs() }
         FAKE_PROC.forEach { (n, c) -> File(fake, n).writeText(c) }

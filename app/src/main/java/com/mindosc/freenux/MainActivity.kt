@@ -150,6 +150,16 @@ class MainActivity : Activity() {
                 LogBus.log(if (on) "Μικρόφωνο: ΝΑΙ (όσο τρέχει το desktop θα ανάβει η πράσινη ένδειξη του Android)" else "Μικρόφωνο: ΟΧΙ")
             }
         })
+        controls.addView(Switch(this).apply {
+            text = "Σύνδεσμοι από το Linux ανοίγουν στον browser του κινητού (πιο ασφαλές)"
+            setTextColor(0xFFE6E6E6.toInt())
+            isChecked = LinuxService.prefs(this@MainActivity).getBoolean("android_browser", false)
+            setOnCheckedChangeListener { _, on ->
+                LinuxService.prefs(this@MainActivity).edit().putBoolean("android_browser", on).apply()
+                linux.setFlag("android-browser", on)
+                LogBus.log("Browser κινητού: " + (if (on) "ΝΑΙ" else "ΟΧΙ") + " – ισχύει από την επόμενη «Επανεκκίνηση desktop»")
+            }
+        })
         sshSwitch = Switch(this).apply {
             text = "SSH από άλλο υπολογιστή (θύρα 8022)"
             setTextColor(0xFFE6E6E6.toInt())

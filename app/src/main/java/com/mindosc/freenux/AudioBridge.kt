@@ -3,14 +3,14 @@ package com.mindosc.freenux
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
-import java.net.InetSocketAddress
-import java.net.Socket
+import android.net.LocalSocket
+import android.net.LocalSocketAddress
+import java.io.File
 import kotlin.concurrent.thread
 
-/** Παίρνει τον ήχο του Linux (PulseAudio, PCM 48kHz stereo 16-bit) από TCP και τον παίζει στο κινητό. */
-class AudioBridge {
+/** Παίρνει τον ήχο του Linux (PulseAudio, PCM 48kHz stereo 16-bit) από unix socket στον ιδιωτικό φάκελο και τον παίζει. */
+class AudioBridge(private val sock: File) {
     companion object {
-        const val PORT = 4656
         private const val RATE = 48000
     }
 
@@ -32,12 +32,11 @@ class AudioBridge {
         var announced = false
         while (running) {
             try {
-                Socket().use { sock ->
-                    sock.connect(InetSocketAddress("127.0.0.1", PORT), 1000)
-                    sock.soTimeout = 0
-                    sock.tcpNoDelay = true
+                if (!sock.exists()) throw IllegalStateException("όχι ακόμα")
+                LocalSocket().use { ls ->
+                    ls.connect(LocalSocketAddress(sock.absolutePath, LocalSocketAddress.Namespace.FILESYSTEM))
                     if (!announced) { LogBus.log(">>> Ήχος συνδέθηκε στο κινητό ✓"); announced = true }
-                    play(sock)
+                    play(ls.inputStream)
                 }
             } catch (_: InterruptedException) {
                 return
@@ -48,7 +47,7 @@ class AudioBridge {
         }
     }
 
-    private fun play(sock: Socket) {
+    private fun play(input: java.io.InputStream) {
         val min = AudioTrack.getMinBufferSize(RATE, AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT)
         val bufSize = maxOf(min * 2, RATE * 4 / 10) // ~100 ms
         val track = AudioTrack.Builder()
@@ -66,7 +65,6 @@ class AudioBridge {
             .build()
         try {
             track.play()
-            val input = sock.getInputStream()
             val buf = ByteArray(4096)
             var carry = 0 // κρατάμε ευθυγράμμιση στα 4 bytes (stereo frame)
             while (running) {

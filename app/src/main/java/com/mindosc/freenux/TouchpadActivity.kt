@@ -24,8 +24,8 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.TextView
 import java.io.OutputStream
-import java.net.InetSocketAddress
-import java.net.Socket
+import android.net.LocalSocket
+import android.net.LocalSocketAddress
 import java.util.concurrent.LinkedBlockingQueue
 import kotlin.concurrent.thread
 import kotlin.math.abs
@@ -123,11 +123,12 @@ class TouchpadActivity : Activity() {
     private fun netLoop() {
         while (alive) {
             try {
-                Socket().use { s ->
-                    s.connect(InetSocketAddress("127.0.0.1", 4658), 1500)
-                    s.tcpNoDelay = true
+                val path = java.io.File(Linux(this).rootfs, "tmp/freenux-touch.sock")
+                if (!path.exists()) throw IllegalStateException("όχι ακόμα")
+                LocalSocket().use { s ->
+                    s.connect(LocalSocketAddress(path.absolutePath, LocalSocketAddress.Namespace.FILESYSTEM))
                     status("Touchpad · 1 δάχτυλο: κίνηση · άγγιγμα: κλικ · 2 δάχτυλα: κύλιση / δεξί κλικ")
-                    val out: OutputStream = s.getOutputStream()
+                    val out: OutputStream = s.outputStream
                     while (alive) {
                         val c = queue.take()
                         if (c.isEmpty()) break

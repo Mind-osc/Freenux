@@ -37,6 +37,7 @@ class LinuxService : Service() {
 
         @Volatile var desktopRunning = false
             private set
+        @Volatile var lastDisplayId = Display.DEFAULT_DISPLAY
 
         fun send(ctx: Context, action: String) {
             ctx.startForegroundService(Intent(ctx, LinuxService::class.java).setAction(action))
@@ -71,6 +72,7 @@ class LinuxService : Service() {
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 .putExtra(DesktopActivity.EXTRA_EXTERNAL, displayId != Display.DEFAULT_DISPLAY)
             if (displayId != Display.DEFAULT_DISPLAY && !useX11(ctx)) i.addFlags(Intent.FLAG_ACTIVITY_MULTIPLE_TASK)
+            lastDisplayId = displayId
             val opts = ActivityOptions.makeBasic().setLaunchDisplayId(displayId)
             try { ctx.startActivity(i, opts.toBundle()) } catch (e: Exception) {
                 LogBus.log("Δεν άνοιξε στην οθόνη $displayId: ${e.message}")
@@ -88,8 +90,9 @@ class LinuxService : Service() {
     private lateinit var dm: DisplayManager
     private var desktop: Process? = null
     private var xserver: Process? = null
-    private val audio = AudioBridge()
-    private val mic = MicBridge()
+    private val audio by lazy { AudioBridge(java.io.File(linux.rootfs, "tmp/freenux-audio.sock")) }
+    private val mic by lazy { MicBridge(java.io.File(linux.rootfs, "tmp/freenux-mic.sock")) }
+    private var openWatcher: android.os.FileObserver? = null
     @Volatile private var busy = false
     private var wake: PowerManager.WakeLock? = null
 
@@ -118,6 +121,7 @@ class LinuxService : Service() {
         startForeground(1, notification("Σε αναμονή για οθόνη"))
         LogBus.add(widgetListener)
         FreenuxWidget.update(this)
+        watchOpenRequests()
         dm.registerDisplayListener(displayListener, Handler(Looper.getMainLooper()))
     }
 
@@ -167,7 +171,30 @@ class LinuxService : Service() {
         if (LogBus.state != lastState) { lastState = LogBus.state; FreenuxWidget.update(this) }
     }
 
+    /** Σύνδεσμοι από το Linux (/tmp/freenux-open) → browser του Android, στην οθόνη του desktop. */
+    @Suppress("DEPRECATION")
+    private fun watchOpenRequests() {
+        val dir = java.io.File(linux.rootfs, "tmp").apply { mkdirs() }
+        val req = java.io.File(dir, "freenux-open")
+        openWatcher = object : android.os.FileObserver(dir.path, CLOSE_WRITE or MOVED_TO) {
+            override fun onEvent(event: Int, path: String?) {
+                if (path != "freenux-open") return
+                val urls = synchronized(this) {
+                    val t = try { req.readText() } catch (_: Exception) { "" }
+                    req.delete(); t
+                }
+                urls.lines().map { it.trim() }.filter { it.startsWith("https://") || it.startsWith("http://") }.take(3).forEach { u ->
+                    try {
+                        val i = Intent(Intent.ACTION_VIEW, android.net.Uri.parse(u)).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        startActivity(i, ActivityOptions.makeBasic().setLaunchDisplayId(lastDisplayId).toBundle())
+                    } catch (e: Exception) { LogBus.log("Δεν άνοιξε ο σύνδεσμος: ${e.message}") }
+                }
+            }
+        }.also { it.startWatching() }
+    }
+
     override fun onDestroy() {
+        openWatcher?.stopWatching()
         LogBus.remove(widgetListener)
         dm.unregisterDisplayListener(displayListener)
         desktop?.destroy()
@@ -214,6 +241,7 @@ class LinuxService : Service() {
         linux.prepareHostFiles()
         linux.setGpu(gpuEnabled(this))
         linux.setSsh(prefs(this).getBoolean("ssh", false))
+        linux.setFlag("android-browser", prefs(this).getBoolean("android_browser", false))
         LogBus.setState("Ξεκινάει…")
         val x11 = useX11(this)
         if (x11 && !startXServer()) return

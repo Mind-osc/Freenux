@@ -1,7 +1,7 @@
 #!/bin/bash
-# Freenux ενημερώσεις: v2 Claude/θέματα/φόντα, v3 ήχος, v4 πληκτρολόγιο/κατάστημα, v5 driver GPU, v6 patched Mesa, v7 ειδοποιήσεις/SSH, v8 βίντεο/εμφάνιση, v9 YouTube→mpv/Stremio, v10 touchpad
+# Freenux ενημερώσεις: v2 Claude/θέματα/φόντα, v3 ήχος, v4 πληκτρολόγιο/κατάστημα, v5 driver GPU, v6 patched Mesa, v7 ειδοποιήσεις/SSH, v8 βίντεο/εμφάνιση, v9 YouTube→mpv/Stremio, v10 touchpad, v11 ασφάλεια
 set -e
-V=/root/.freenux/update.v10
+V=/root/.freenux/update.v11
 [ -f "$V" ] && { echo ">>> Όλα ενημερωμένα"; exit 0; }
 export DEBIAN_FRONTEND=noninteractive
 mkdir -p /root/.freenux
@@ -288,8 +288,73 @@ EOF
 touch /root/.freenux/update.v9
 fi
 
+if [ ! -f /root/.freenux/update.v10 ]; then
 echo ">>> Ενημέρωση: touchpad/πληκτρολόγιο από το κινητό"
 apt-get install -y xdotool
+touch /root/.freenux/update.v10
+fi
+
+echo ">>> Ενημέρωση: ασφάλεια (κωδικός VNC, uBlock Origin, sandbox, browser κινητού)"
+apt-get install -y tigervnc-tools || true
+
+# uBlock Origin + ff2mpv στον Firefox (πολιτική συστήματος)
+for D in /usr/lib/firefox-esr/distribution /etc/firefox-esr/policies; do
+  mkdir -p "$D"
+  cat > "$D/policies.json" <<'EOF'
+{
+  "policies": {
+    "ExtensionSettings": {
+      "uBlock0@raymondhill.net": {
+        "installation_mode": "force_installed",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/latest/ublock-origin/latest.xpi"
+      },
+      "ff2mpv@yossarian.net": {
+        "installation_mode": "normal_installed",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/latest/ff2mpv/latest.xpi"
+      }
+    }
+  }
+}
+EOF
+done
+# uBlock Origin Lite στο Chromium (εφαρμογή Claude, Stremio)
+mkdir -p /etc/chromium/policies/managed
+cat > /etc/chromium/policies/managed/freenux.json <<'EOF'
+{ "ExtensionInstallForcelist": ["ddkjiahejlhfcafbddmgiahcphecmpfh;https://clients2.google.com/service/update2/crx"] }
+EOF
+
+# Chromium: sandbox ανοιχτό αν πέρασε η δοκιμή
+for f in /usr/local/bin/claude-app /usr/local/bin/stremio; do
+  [ -f "$f" ] && sed -i 's|exec chromium --no-sandbox --test-type|exec chromium $([ -f /root/.freenux/cr-sandbox.ok ] \|\| echo --no-sandbox --test-type)|' "$f"
+done
+
+# Browser του κινητού (Android, με πλήρες sandbox)
+cat > /usr/local/bin/freenux-open-android <<'EOF'
+#!/bin/bash
+# Ανοίγει σύνδεσμο στον browser του Android (ασφαλής, με πλήρες sandbox)
+url="${1:-https://www.google.com}"
+case "$url" in http://*|https://*) ;; *) url="https://$url" ;; esac
+printf '%s\n' "$url" >> /tmp/freenux-open
+EOF
+chmod 755 /usr/local/bin/freenux-open-android
+cat > /usr/share/applications/freenux-android-browser.desktop <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Browser κινητού (ασφαλής)
+Comment=Ανοίγει στον browser του Android, με πλήρες sandbox
+Exec=freenux-open-android %u
+Icon=web-browser
+Categories=Network;WebBrowser;
+MimeType=x-scheme-handler/http;x-scheme-handler/https;text/html;
+EOF
+cat > /usr/share/applications/freenux-claude-android.desktop <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Claude (στον browser του κινητού)
+Exec=freenux-open-android https://claude.ai
+Icon=freenux-claude
+Categories=Network;Office;
+EOF
 
 apt-get clean
 touch "$V"

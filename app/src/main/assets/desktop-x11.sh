@@ -1,7 +1,16 @@
 #!/bin/bash
 # Freenux: XFCE πάνω στον native X server του Termux:X11 (DISPLAY=:0), χωρίς VNC
 export DISPLAY=:0 HOME=/root USER=root LANG=C.UTF-8
-export MOZ_FAKE_NO_SANDBOX=1 MOZ_DISABLE_CONTENT_SANDBOX=1 MOZ_DISABLE_GMP_SANDBOX=1
+# Sandbox του Firefox: ανοιχτό αν πέρασε η δοκιμή (freenux-sandbox-test), αλλιώς κλειστό
+if [ -f /root/.freenux/ff-sandbox.ok ]; then
+  unset MOZ_FAKE_NO_SANDBOX MOZ_DISABLE_CONTENT_SANDBOX MOZ_DISABLE_GMP_SANDBOX
+else
+  export MOZ_FAKE_NO_SANDBOX=1 MOZ_DISABLE_CONTENT_SANDBOX=1 MOZ_DISABLE_GMP_SANDBOX=1
+fi
+cat > /etc/profile.d/freenux.sh <<'PROF'
+[ -f /root/.freenux/ff-sandbox.ok ] || export MOZ_FAKE_NO_SANDBOX=1 MOZ_DISABLE_CONTENT_SANDBOX=1 MOZ_DISABLE_GMP_SANDBOX=1
+export PATH="$HOME/.local/bin:$PATH"
+PROF
 export PATH="/root/.local/bin:$PATH"
 export NO_AT_BRIDGE=1  # χωρίς τα μηνύματα AT-SPI
 export XDG_RUNTIME_DIR=/tmp/runtime-root

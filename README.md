@@ -50,7 +50,8 @@
 
 - Χωρίς root: όχι systemd, Docker, Snap/Flatpak, δικό του kernel, άμεσο USB/Bluetooth.
 - Το proot κάνει τις εγκαταστάσεις και τη μεταγλώττιση 2–5× πιο αργές από κανονικό PC.
-- Ο Firefox/Chromium τρέχουν χωρίς sandbox (δεν υποστηρίζεται μέσα στο proot).
+- Ο Firefox/Chromium: το sandbox δοκιμάζεται αυτόματα και ανοίγει αν δουλεύει· αλλιώς χρησιμοποίησε το «Browser κινητού (ασφαλής)» για ευαίσθητα sites. uBlock Origin από προεπιλογή.
+- Ήχος, μικρόφωνο, touchpad: μόνο μέσα από τον ιδιωτικό φάκελο της εφαρμογής (unix sockets)· VNC με κωδικό.
 - Η GPU (patched Mesa) είναι κοινοτικός driver· αν κολλήσει, γυρίζει μόνο του σε Zink/CPU.
 
 ## Επόμενα

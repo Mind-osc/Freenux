@@ -50,6 +50,7 @@ class DesktopActivity : Activity() {
         val resize = if (onExternal) "remote" else "scale"
         val url = "http://127.0.0.1:${Linux.NOVNC_PORT}/vnc.html?autoconnect=true&reconnect=true" +
             "&reconnect_delay=1000&resize=$resize&show_dot=true&path=websockify" +
+            "&password=" + Linux(this).vncPassword +
             "&quality=5&compression=1"
 
         LinuxService.send(this, LinuxService.ACTION_START)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Freenux touchpad: δέχεται εντολές από την εφαρμογή Android (TCP 127.0.0.1:4658) και
+"""Freenux touchpad: δέχεται εντολές από την εφαρμογή Android (unix socket /tmp/freenux-touch.sock) και
 κουνάει το ποντίκι / πατάει κουμπιά μέσω της επέκτασης XTEST του X server (χωρίς βιβλιοθήκες).
 
 Εντολές, μία ανά γραμμή:
@@ -83,9 +83,14 @@ def client(conn):
                 pass
 
 
-srv = socket.socket()
-srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-srv.bind(("127.0.0.1", 4658))
+PATH = "/tmp/freenux-touch.sock"
+try:
+    os.unlink(PATH)
+except FileNotFoundError:
+    pass
+srv = socket.socket(socket.AF_UNIX)
+srv.bind(PATH)
+os.chmod(PATH, 0o600)
 srv.listen(2)
 while True:
     c, _ = srv.accept()
