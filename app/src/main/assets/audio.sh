@@ -15,15 +15,16 @@ default-server = unix:/tmp/pulse-socket
 autospawn = no
 EOF
 
-pkill -x pulseaudio 2>/dev/null
-rm -f /tmp/pulse-socket
-pulseaudio -n -F /etc/freenux/pulse.pa --exit-idle-time=-1 --disallow-exit=yes \
+pkill -x pulseaudio 2>/dev/null; sleep 0.3; pkill -9 -x pulseaudio 2>/dev/null
+# Παλιά αρχεία από προηγούμενη εκκίνηση κάνουν τον PulseAudio να νομίζει ότι τρέχει ήδη
+rm -rf /tmp/pulse-socket /tmp/pulse-* "${XDG_RUNTIME_DIR:-/tmp/runtime-root}/pulse" /root/.config/pulse/*-runtime /root/.config/pulse/*.pid 2>/dev/null
+pulseaudio -n -F /etc/freenux/pulse.pa --exit-idle-time=-1 --disallow-exit=yes --use-pid-file=no \
   --disable-shm=yes --realtime=no --high-priority=no --daemonize=yes \
   --log-target=stderr >/tmp/pulse.log 2>&1
 export PULSE_SERVER=unix:/tmp/pulse-socket
 for i in $(seq 1 25); do [ -e /tmp/pulse-socket ] && break; sleep 0.2; done
 if [ -e /tmp/pulse-socket ]; then echo ">>> Ήχος ✓"
-else echo ">>> Ο ήχος δεν ξεκίνησε:"; grep -v -i "not intended" /tmp/pulse.log | tail -5 | sed 's/^/[ήχος] /'; fi
+else echo ">>> Ο ήχος δεν ξεκίνησε:"; grep -v "not intended to be run as root" /tmp/pulse.log | tail -10 | sed 's/^/[ήχος] /'; fi
 
 # Ρύθμιση έντασης στο panel (μία φορά)
 if [ ! -f /root/.freenux/audio-panel ] && command -v xfce4-panel >/dev/null; then
