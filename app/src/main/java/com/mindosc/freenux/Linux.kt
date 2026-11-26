@@ -14,7 +14,7 @@ class Linux(private val ctx: Context) {
 
     val rootfsReady get() = rootfsMarker.exists()
     val setupDone get() = rootfsReady && File(rootfs, "root/.freenux/setup.done").exists()
-    val updateDone get() = File(rootfs, "root/.freenux/update.v8").exists()
+    val updateDone get() = File(rootfs, "root/.freenux/update.v9").exists()
     val claudeDone get() = File(rootfs, "root/.freenux/claude.done").exists()
 
     /** Διακόπτης GPU: αρχείο-σημάδι που διαβάζει το gpu.sh μέσα στο Linux. */
@@ -61,6 +61,7 @@ class Linux(private val ctx: Context) {
             "folders.sh" to "freenux-folders",
             "ssh.sh" to "freenux-ssh",
             "bundles.sh" to "freenux-bundles",
+            "ff2mpv.py" to "freenux-ff2mpv",
         )) {
             val f = File(bin, name)
             ctx.assets.open(asset).use { i -> f.outputStream().use { i.copyTo(it) } }

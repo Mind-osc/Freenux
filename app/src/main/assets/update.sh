@@ -1,7 +1,7 @@
 #!/bin/bash
-# Freenux ενημερώσεις: v2 Claude/θέματα/φόντα, v3 ήχος, v4 πληκτρολόγιο/κατάστημα, v5 driver GPU, v6 patched Mesa, v7 ειδοποιήσεις/SSH, v8 βίντεο/εμφάνιση
+# Freenux ενημερώσεις: v2 Claude/θέματα/φόντα, v3 ήχος, v4 πληκτρολόγιο/κατάστημα, v5 driver GPU, v6 patched Mesa, v7 ειδοποιήσεις/SSH, v8 βίντεο/εμφάνιση, v9 YouTube→mpv
 set -e
-V=/root/.freenux/update.v8
+V=/root/.freenux/update.v9
 [ -f "$V" ] && { echo ">>> Όλα ενημερωμένα"; exit 0; }
 export DEBIAN_FRONTEND=noninteractive
 mkdir -p /root/.freenux
@@ -176,6 +176,7 @@ apt-get install -y libnotify-bin dropbear-bin x11-xserver-utils
 touch /root/.freenux/update.v7
 fi
 
+if [ ! -f /root/.freenux/update.v8 ]; then
 echo ">>> Ενημέρωση: βίντεο με GPU (mpv) και εμφάνιση Freenux"
 apt-get install -y mpv yt-dlp || apt-get install -y mpv
 mkdir -p /root/.config/mpv
@@ -190,6 +191,59 @@ EOF
 for t in video/mp4 video/x-matroska video/webm video/quicktime video/x-msvideo video/mpeg; do
   xdg-mime default mpv.desktop $t 2>/dev/null || true
 done
+touch /root/.freenux/update.v8
+fi
+
+echo ">>> Ενημέρωση: κουμπί «Άνοιγμα στο mpv» στον Firefox + νέο yt-dlp"
+apt-get install -y zenity || true
+# Πιο πρόσφατο yt-dlp (το YouTube αλλάζει συχνά· του Debian μένει πίσω)
+if curl -fL --retry 3 https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux_aarch64 -o /usr/local/bin/yt-dlp.new; then
+  chmod 755 /usr/local/bin/yt-dlp.new && mv -f /usr/local/bin/yt-dlp.new /usr/local/bin/yt-dlp
+  echo "   yt-dlp $(/usr/local/bin/yt-dlp --version 2>/dev/null)"
+fi
+# Native messaging host για την επέκταση ff2mpv
+mkdir -p /usr/lib/mozilla/native-messaging-hosts
+cat > /usr/lib/mozilla/native-messaging-hosts/ff2mpv.json <<'EOF'
+{
+  "name": "ff2mpv",
+  "description": "Freenux: άνοιγμα συνδέσμων στο mpv",
+  "path": "/usr/local/bin/freenux-ff2mpv",
+  "type": "stdio",
+  "allowed_extensions": ["ff2mpv@yossarian.net"]
+}
+EOF
+# Αυτόματη εγκατάσταση της επέκτασης στον Firefox (πολιτική συστήματος)
+for D in /usr/lib/firefox-esr/distribution /etc/firefox-esr/policies; do
+  mkdir -p "$D"
+  cat > "$D/policies.json" <<'EOF'
+{
+  "policies": {
+    "ExtensionSettings": {
+      "ff2mpv@yossarian.net": {
+        "installation_mode": "normal_installed",
+        "install_url": "https://addons.mozilla.org/firefox/downloads/latest/ff2mpv/latest.xpi"
+      }
+    }
+  }
+}
+EOF
+done
+# Εικονίδιο «YouTube στο mpv»: επικολλάς σύνδεσμο και παίζει
+cat > /usr/local/bin/freenux-play-url <<'EOF'
+#!/bin/bash
+url=$(zenity --entry --title="Βίντεο στο mpv" --text="Επικόλλησε σύνδεσμο (YouTube κ.λπ.):" --width=500 2>/dev/null)
+[ -n "$url" ] && exec mpv --force-window=immediate -- "$url"
+EOF
+chmod 755 /usr/local/bin/freenux-play-url
+cat > /usr/share/applications/freenux-play-url.desktop <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Βίντεο από σύνδεσμο (mpv)
+Comment=Επικόλλησε σύνδεσμο YouTube και παίζει στο mpv
+Exec=freenux-play-url
+Icon=mpv
+Categories=AudioVideo;Video;
+EOF
 
 apt-get clean
 touch "$V"
