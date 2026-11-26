@@ -19,3 +19,11 @@ grep -q "freenux-root-warning" "$CSS" || cat >> "$CSS" <<'EOF'
 /* freenux-root-warning */
 .thunar infobar.warning, .thunar .warning { font-size: 0; min-height: 0; margin: -30px 0 0 0; padding: 0; opacity: 0; }
 EOF
+
+# Chromium: ως root (ψεύτικος, του proot) δεν ξεκινάει χωρίς --no-sandbox
+if [ -d /etc/chromium.d ]; then
+  cat > /etc/chromium.d/freenux <<'EOF'
+# Freenux: ο root εδώ είναι του proot· το Chromium αρνείται να τρέξει ως root με sandbox
+export CHROMIUM_FLAGS="$CHROMIUM_FLAGS --no-sandbox --test-type --password-store=basic"
+EOF
+fi

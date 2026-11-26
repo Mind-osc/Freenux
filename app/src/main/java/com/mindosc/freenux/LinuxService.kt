@@ -178,6 +178,12 @@ class LinuxService : Service() {
         val req = java.io.File(dir, "freenux-open")
         openWatcher = object : android.os.FileObserver(dir.path, CLOSE_WRITE or MOVED_TO) {
             override fun onEvent(event: Int, path: String?) {
+                if (path == "freenux-log") {
+                    val f = java.io.File(dir, "freenux-log")
+                    val t = synchronized(this) { try { f.readText().also { f.delete() } } catch (_: Exception) { "" } }
+                    t.lines().filter { it.isNotBlank() }.take(50).forEach { LogBus.log(it) }
+                    return
+                }
                 if (path != "freenux-open") return
                 val urls = synchronized(this) {
                     val t = try { req.readText() } catch (_: Exception) { "" }
