@@ -2,6 +2,9 @@
 
 Μετά από νέο APK πάτα **①** στις ρυθμίσεις για να περάσουν οι αλλαγές και μέσα στο Linux.
 
+## 0.10.2 – 26/11/2026
+- **Thunar**: χωρίς τη μπλε μπάρα «you are using the root account» (ο root στο Freenux είναι ψεύτικος, του proot).
+
 ## 0.10.1 – 26/11/2026
 - **Log**: δεν εμφανίζονται πια τα αθώα μηνύματα του XFCE (systemd, GPG/SSH agent, pm-is-supported, DPMS κ.λπ.). Το πλήρες log μένει στο `/tmp/xfce.log` μέσα στο Linux.
 

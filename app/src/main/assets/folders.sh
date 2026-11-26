@@ -11,3 +11,11 @@ if [ -d /sdcard ] && [ -r /sdcard ]; then
     grep -q "^file://$t " "$B" || echo "file://$t $n" >> "$B"
   done
 fi
+
+# Thunar: κρύβουμε την μπάρα «you are using the root account» (ο root εδώ είναι ψεύτικος, του proot)
+CSS=/root/.config/gtk-3.0/gtk.css
+mkdir -p "$(dirname "$CSS")"; touch "$CSS"
+grep -q "freenux-root-warning" "$CSS" || cat >> "$CSS" <<'EOF'
+/* freenux-root-warning */
+.thunar infobar.warning, .thunar .warning { font-size: 0; min-height: 0; margin: -30px 0 0 0; padding: 0; opacity: 0; }
+EOF
