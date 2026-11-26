@@ -1,7 +1,7 @@
 #!/bin/bash
-# Freenux ενημερώσεις: v2 Claude/θέματα/φόντα, v3 ήχος, v4 πληκτρολόγιο/κατάστημα, v5 driver GPU, v6 patched Mesa
+# Freenux ενημερώσεις: v2 Claude/θέματα/φόντα, v3 ήχος, v4 πληκτρολόγιο/κατάστημα, v5 driver GPU, v6 patched Mesa, v7 ειδοποιήσεις/SSH
 set -e
-V=/root/.freenux/update.v6
+V=/root/.freenux/update.v7
 [ -f "$V" ] && { echo ">>> Όλα ενημερωμένα"; exit 0; }
 export DEBIAN_FRONTEND=noninteractive
 mkdir -p /root/.freenux
@@ -163,8 +163,15 @@ rm -rf "$TD"
 touch /root/.freenux/update.v5
 fi
 
+if [ ! -f /root/.freenux/update.v6 ]; then
 echo ">>> Ενημέρωση: patched Mesa (εικόνα GPU κατευθείαν στο Termux:X11)"
 python3 /usr/local/bin/freenux-gpu-install
+touch /root/.freenux/update.v6
+fi
+
+echo ">>> Ενημέρωση: ειδοποιήσεις κινητού, SSH, κλίμακα οθόνης"
+apt-get update
+apt-get install -y libnotify-bin dropbear-bin x11-xserver-utils
 
 apt-get clean
 touch "$V"

@@ -14,13 +14,21 @@ class Linux(private val ctx: Context) {
 
     val rootfsReady get() = rootfsMarker.exists()
     val setupDone get() = rootfsReady && File(rootfs, "root/.freenux/setup.done").exists()
-    val updateDone get() = File(rootfs, "root/.freenux/update.v6").exists()
+    val updateDone get() = File(rootfs, "root/.freenux/update.v7").exists()
     val claudeDone get() = File(rootfs, "root/.freenux/claude.done").exists()
 
     /** Διακόπτης GPU: αρχείο-σημάδι που διαβάζει το gpu.sh μέσα στο Linux. */
     fun setGpu(on: Boolean) {
         val f = File(rootfs, "root/.freenux/gpu.on")
         if (on) { f.parentFile?.mkdirs(); f.writeText("1") } else f.delete()
+    }
+
+    /** SSH: σημάδι ενεργοποίησης + (προαιρετικά) νέος κωδικός για το root. */
+    fun setSsh(on: Boolean, password: String? = null) {
+        val dir = File(rootfs, "root/.freenux").apply { mkdirs() }
+        val f = File(dir, "ssh.on")
+        if (on) f.writeText("1") else f.delete()
+        if (on && !password.isNullOrEmpty()) File(dir, "ssh.pass").writeText(password)
     }
 
     fun markRootfsReady() = rootfsMarker.writeText("ok")
@@ -49,6 +57,10 @@ class Linux(private val ctx: Context) {
             "gpu.sh" to "freenux-gpu",
             "backup.sh" to "freenux-backup",
             "gpu-install.py" to "freenux-gpu-install",
+            "session.sh" to "freenux-session",
+            "folders.sh" to "freenux-folders",
+            "ssh.sh" to "freenux-ssh",
+            "bundles.sh" to "freenux-bundles",
         )) {
             val f = File(bin, name)
             ctx.assets.open(asset).use { i -> f.outputStream().use { i.copyTo(it) } }

@@ -13,6 +13,10 @@ mkdir -p "$XDG_RUNTIME_DIR" && chmod 700 "$XDG_RUNTIME_DIR"
 
 bash /usr/local/bin/freenux-mint || echo "(η εμφάνιση Mint θα ξαναδοκιμαστεί στην επόμενη εκκίνηση)"
 . /usr/local/bin/freenux-audio
+. /usr/local/bin/freenux-folders
+. /usr/local/bin/freenux-ssh
+mkdir -p /root/.config/autostart
+printf '[Desktop Entry]\nType=Application\nName=Freenux συνεδρία\nExec=freenux-session\nNoDisplay=true\n' > /root/.config/autostart/freenux-session.desktop
 pkill -f xfce4-session 2>/dev/null
 
 for i in $(seq 1 150); do [ -e /tmp/.X11-unix/X0 ] && break; sleep 0.2; done
@@ -55,6 +59,7 @@ manual_xfce() {
   xfwm4 --replace 2>&1 | log xfwm4 &
   xfdesktop 2>&1 | log xfdesktop &
   xfce4-panel 2>&1 | log panel &
+  freenux-session >/dev/null 2>&1 &
   sleep 3
   echo ">>> [διάγνωση] διεργασίες:"
   ps -eo pid,args | grep -E "xfwm4|xfdesktop|xfce4-panel|xfsettingsd" | grep -v grep | grep -v sed | sed 's/^/   /'

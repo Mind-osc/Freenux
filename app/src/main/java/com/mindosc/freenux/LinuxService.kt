@@ -28,6 +28,8 @@ class LinuxService : Service() {
         const val ACTION_RESTART = "restart"
         const val ACTION_BACKUP = "backup"
         const val ACTION_RESTORE = "restore"
+        const val ACTION_BUNDLES = "bundles"
+        const val EXTRA_BUNDLES = "bundles"
         val BACKUP_FILE = java.io.File("/storage/emulated/0/Freenux/freenux-backup.tar.gz")
         fun gpuEnabled(ctx: Context) = prefs(ctx).getBoolean("gpu", false)
         private const val CH = "freenux"
@@ -106,6 +108,8 @@ class LinuxService : Service() {
             NotificationChannel(CH, "Freenux", NotificationManager.IMPORTANCE_LOW)
         )
         startForeground(1, notification("Σε αναμονή για οθόνη"))
+        LogBus.add(widgetListener)
+        FreenuxWidget.update(this)
         dm.registerDisplayListener(displayListener, Handler(Looper.getMainLooper()))
     }
 
@@ -137,12 +141,25 @@ class LinuxService : Service() {
                     RootfsInstaller(this, linux).restore(BACKUP_FILE)
                 }
             }
+            ACTION_BUNDLES -> {
+                val list = intent.getStringArrayExtra(EXTRA_BUNDLES).orEmpty().filter { it.matches(Regex("[a-z]+")) }
+                if (list.isNotEmpty()) background("Εγκατάσταση εφαρμογών…") {
+                    if (!linux.setupDone) LogBus.log("Κάνε πρώτα την εγκατάσταση του Debian.")
+                    else linux.run("bash /usr/local/bin/freenux-bundles " + list.joinToString(" "))
+                }
+            }
             ACTION_STOP -> stopDesktop(stopService = !autoEnabled(this))
         }
         return START_STICKY
     }
 
+    private var lastState = ""
+    private val widgetListener: () -> Unit = {
+        if (LogBus.state != lastState) { lastState = LogBus.state; FreenuxWidget.update(this) }
+    }
+
     override fun onDestroy() {
+        LogBus.remove(widgetListener)
         dm.unregisterDisplayListener(displayListener)
         desktop?.destroy()
         xserver?.destroy()
@@ -186,6 +203,7 @@ class LinuxService : Service() {
         if (!linux.setupDone) { LogBus.log("Κάνε πρώτα «Εγκατάσταση»."); return }
         linux.prepareHostFiles()
         linux.setGpu(gpuEnabled(this))
+        linux.setSsh(prefs(this).getBoolean("ssh", false))
         LogBus.setState("Ξεκινάει…")
         val x11 = useX11(this)
         if (x11 && !startXServer()) return
