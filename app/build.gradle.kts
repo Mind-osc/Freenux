@@ -45,6 +45,8 @@ android {
         jniLibs { useLegacyPackaging = true } // να αποσυμπιέζονται τα libproot*.so ώστε να εκτελούνται
         resources { excludes += listOf("META-INF/LICENSE*", "META-INF/NOTICE*", "META-INF/DEPENDENCIES") }
     }
+    androidResources { noCompress += listOf("jpg", "svg") }
+
     lint {
         abortOnError = false
         checkReleaseBuilds = false

@@ -14,7 +14,7 @@ class Linux(private val ctx: Context) {
 
     val rootfsReady get() = rootfsMarker.exists()
     val setupDone get() = rootfsReady && File(rootfs, "root/.freenux/setup.done").exists()
-    val updateDone get() = File(rootfs, "root/.freenux/update.v7").exists()
+    val updateDone get() = File(rootfs, "root/.freenux/update.v8").exists()
     val claudeDone get() = File(rootfs, "root/.freenux/claude.done").exists()
 
     /** Διακόπτης GPU: αρχείο-σημάδι που διαβάζει το gpu.sh μέσα στο Linux. */
@@ -65,6 +65,20 @@ class Linux(private val ctx: Context) {
             val f = File(bin, name)
             ctx.assets.open(asset).use { i -> f.outputStream().use { i.copyTo(it) } }
             chmod(f, "755")
+        }
+
+        // Εικόνες Freenux (φόντο, εικονίδιο) – αντιγραφή μόνο αν άλλαξαν
+        for ((asset, path) in listOf(
+            "freenux-wallpaper.jpg" to "usr/share/backgrounds/freenux/freenux.jpg",
+            "freenux-icon.svg" to "usr/share/icons/hicolor/scalable/apps/freenux.svg",
+        )) {
+            val f = File(rootfs, path)
+            val size = ctx.assets.openFd(asset).use { it.length }
+            if (f.length() != size) {
+                f.parentFile?.mkdirs()
+                ctx.assets.open(asset).use { i -> f.outputStream().use { i.copyTo(it) } }
+                chmod(f, "644")
+            }
         }
 
         val fake = File(rootfs, ".freenux-proc").apply { mkdirs() }

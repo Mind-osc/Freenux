@@ -23,6 +23,12 @@ for i in $(seq 1 150); do [ -e /tmp/.X11-unix/X0 ] && break; sleep 0.2; done
 [ -e /tmp/.X11-unix/X0 ] && echo ">>> X socket OK" || echo ">>> ΣΦΑΛΜΑ: δεν βρέθηκε /tmp/.X11-unix/X0"
 ls -la /tmp/.X11-unix/ 2>&1
 . /usr/local/bin/freenux-gpu   # χρειάζεται τον X server, οπότε μετά το socket
+FFP=/usr/lib/firefox-esr/defaults/pref/freenux-gpu.js
+if [ -n "$MESA_LOADER_DRIVER_OVERRIDE" ] && [ -d "$(dirname $FFP)" ]; then
+  printf 'pref("gfx.webrender.all", true);\npref("layers.acceleration.force-enabled", true);\npref("media.hardware-video-decoding.enabled", false);\n' > $FFP
+else
+  rm -f $FFP
+fi
 echo ">>> XFCE στο Termux:X11"
 
 

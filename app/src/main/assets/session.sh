@@ -31,4 +31,19 @@
   done
 ) &
 
+# 3) Εμφάνιση Freenux (μία φορά): φόντο σε όλες τις οθόνες + εικονίδιο στο μενού
+if [ ! -f /root/.freenux/brand.v1 ] && [ -f /usr/share/backgrounds/freenux/freenux.jpg ]; then
+  sleep 6
+  for mon in $(xrandr --listmonitors 2>/dev/null | awk 'NR>1{print $NF}'); do
+    b=/backdrop/screen0/monitor$mon/workspace0
+    xfconf-query -c xfce4-desktop -p $b/last-image -n -t string -s /usr/share/backgrounds/freenux/freenux.jpg
+    xfconf-query -c xfce4-desktop -p $b/image-style -n -t int -s 5
+  done
+  W=/root/.config/xfce4/panel/whiskermenu-1.rc
+  mkdir -p "$(dirname "$W")"; touch "$W"
+  if grep -q '^button-icon=' "$W"; then sed -i 's|^button-icon=.*|button-icon=freenux|' "$W"; else echo 'button-icon=freenux' >> "$W"; fi
+  touch /root/.freenux/brand.v1
+  xfce4-panel -r >/dev/null 2>&1 &
+fi
+
 wait
