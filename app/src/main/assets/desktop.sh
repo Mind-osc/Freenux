@@ -10,6 +10,9 @@ mkdir -p "$XDG_RUNTIME_DIR" && chmod 700 "$XDG_RUNTIME_DIR"
 # Εμφάνιση Mint (μία φορά· αν αποτύχει, συνεχίζουμε κανονικά)
 bash /usr/local/bin/freenux-mint || echo "(η εμφάνιση Mint θα ξαναδοκιμαστεί στην επόμενη εκκίνηση)"
 . /usr/local/bin/freenux-audio
+# Το XFCE ψάχνει για αναστολή/αδρανοποίηση: απαντάμε «δεν υποστηρίζεται» αντί για σφάλμα
+[ -x /usr/bin/pm-is-supported ] || { printf '#!/bin/sh\nexit 1\n' > /usr/bin/pm-is-supported; chmod 755 /usr/bin/pm-is-supported; }
+QUIET='^\s*$|systemd proxy|system bus|ConsoleKit|GPG agent|SSH authentication agent|_NET_(NUMBER_OF_DESKTOPS|WORKAREA|CURRENT_DESKTOP)|Thumbnailer failed|pm-is-supported|extension "DPMS"|AT-SPI|a11y'
 . /usr/local/bin/freenux-folders
 . /usr/local/bin/freenux-ssh
 mkdir -p /root/.config/autostart

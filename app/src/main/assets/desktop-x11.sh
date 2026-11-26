@@ -13,6 +13,9 @@ mkdir -p "$XDG_RUNTIME_DIR" && chmod 700 "$XDG_RUNTIME_DIR"
 
 bash /usr/local/bin/freenux-mint || echo "(η εμφάνιση Mint θα ξαναδοκιμαστεί στην επόμενη εκκίνηση)"
 . /usr/local/bin/freenux-audio
+# Το XFCE ψάχνει για αναστολή/αδρανοποίηση: απαντάμε «δεν υποστηρίζεται» αντί για σφάλμα
+[ -x /usr/bin/pm-is-supported ] || { printf '#!/bin/sh\nexit 1\n' > /usr/bin/pm-is-supported; chmod 755 /usr/bin/pm-is-supported; }
+QUIET='^\s*$|systemd proxy|system bus|ConsoleKit|GPG agent|SSH authentication agent|_NET_(NUMBER_OF_DESKTOPS|WORKAREA|CURRENT_DESKTOP)|Thumbnailer failed|pm-is-supported|extension "DPMS"|AT-SPI|a11y'
 . /usr/local/bin/freenux-folders
 . /usr/local/bin/freenux-ssh
 mkdir -p /root/.config/autostart
@@ -77,7 +80,7 @@ manual_xfce() {
 while [ -e /tmp/.X11-unix/X0 ]; do
   eval "$(dbus-launch --sh-syntax)"
   export DBUS_SESSION_BUS_ADDRESS
-  xfce4-session 2>&1 | tee /tmp/xfce.log | log xfce &
+  xfce4-session 2>&1 | tee /tmp/xfce.log | grep --line-buffered -v -E "$QUIET" | log xfce &
   SESS=$!
   # Αν σε 15'' δεν έχει ανοίξει το xfwm4, η συνεδρία κόλλησε
   for i in $(seq 1 15); do pgrep -x xfwm4 >/dev/null && break; sleep 1; done
