@@ -1,5 +1,5 @@
 #!/bin/bash
-# Freenux ενημερώσεις: v2 Claude/θέματα/φόντα, v3 ήχος, v4 πληκτρολόγιο/κατάστημα, v5 driver GPU, v6 patched Mesa, v7 ειδοποιήσεις/SSH, v8 βίντεο/εμφάνιση, v9 YouTube→mpv
+# Freenux ενημερώσεις: v2 Claude/θέματα/φόντα, v3 ήχος, v4 πληκτρολόγιο/κατάστημα, v5 driver GPU, v6 patched Mesa, v7 ειδοποιήσεις/SSH, v8 βίντεο/εμφάνιση, v9 YouTube→mpv/Stremio
 set -e
 V=/root/.freenux/update.v9
 [ -f "$V" ] && { echo ">>> Όλα ενημερωμένα"; exit 0; }
@@ -242,6 +242,46 @@ Name=Βίντεο από σύνδεσμο (mpv)
 Comment=Επικόλλησε σύνδεσμο YouTube και παίζει στο mpv
 Exec=freenux-play-url
 Icon=mpv
+Categories=AudioVideo;Video;
+EOF
+
+echo ">>> Stremio (Stremio Web σε δικό του παράθυρο + streaming server)"
+apt-get install -y nodejs ffmpeg
+mkdir -p /opt/stremio
+for v in v4.20.17 v4.20.16 v4.20.15; do
+  if curl -fL --retry 2 "https://dl.strem.io/server/$v/desktop/server.js" -o /opt/stremio/server.js.new && [ -s /opt/stremio/server.js.new ]; then
+    mv -f /opt/stremio/server.js.new /opt/stremio/server.js; echo "   streaming server $v"; break
+  fi
+done
+rm -f /opt/stremio/server.js.new
+cat > /usr/local/bin/stremio <<'EOF'
+#!/bin/bash
+# Freenux: Stremio = streaming server (Node) + Stremio Web σε παράθυρο εφαρμογής
+if [ -f /opt/stremio/server.js ] && ! curl -s -o /dev/null --max-time 1 http://127.0.0.1:11470/; then
+  (cd /opt/stremio && FFMPEG_BIN=/usr/bin/ffmpeg FFPROBE_BIN=/usr/bin/ffprobe \
+     nohup node server.js >/tmp/stremio-server.log 2>&1 &)
+  for i in $(seq 1 30); do curl -s -o /dev/null --max-time 1 http://127.0.0.1:11470/ && break; sleep 0.5; done
+fi
+exec chromium --no-sandbox --test-type --password-store=basic \
+  --user-data-dir="$HOME/.config/stremio-app" --class=Stremio \
+  --app="https://web.stremio.com/#/?streamingServer=http%3A%2F%2F127.0.0.1%3A11470" "$@"
+EOF
+chmod 755 /usr/local/bin/stremio
+cat > /usr/share/icons/hicolor/scalable/apps/freenux-stremio.svg <<'EOF'
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="#2b2257"/>
+  <path d="M24 18 L46 32 L24 46 Z" fill="#B9A6F5"/>
+</svg>
+EOF
+gtk-update-icon-cache -f /usr/share/icons/hicolor 2>/dev/null || true
+cat > /usr/share/applications/stremio.desktop <<'EOF'
+[Desktop Entry]
+Type=Application
+Name=Stremio
+Comment=Ταινίες και σειρές (Stremio Web + streaming server)
+Exec=stremio
+Icon=freenux-stremio
+StartupWMClass=Stremio
 Categories=AudioVideo;Video;
 EOF
 
