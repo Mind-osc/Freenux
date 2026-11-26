@@ -24,6 +24,6 @@ EOF
 if [ -d /etc/chromium.d ]; then
   cat > /etc/chromium.d/freenux <<'EOF'
 # Freenux: ο root εδώ είναι του proot· το Chromium αρνείται να τρέξει ως root με sandbox
-export CHROMIUM_FLAGS="$CHROMIUM_FLAGS --no-sandbox --test-type --password-store=basic"
+export CHROMIUM_FLAGS="$CHROMIUM_FLAGS --no-sandbox --test-type --password-store=basic --log-level=3 --disable-logging"
 EOF
 fi

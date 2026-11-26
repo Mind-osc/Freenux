@@ -21,7 +21,7 @@ bash /usr/local/bin/freenux-mint || echo "(η εμφάνιση Mint θα ξαν�
 . /usr/local/bin/freenux-audio
 # Το XFCE ψάχνει για αναστολή/αδρανοποίηση: απαντάμε «δεν υποστηρίζεται» αντί για σφάλμα
 [ -x /usr/bin/pm-is-supported ] || { printf '#!/bin/sh\nexit 1\n' > /usr/bin/pm-is-supported; chmod 755 /usr/bin/pm-is-supported; }
-QUIET='^\s*$|systemd proxy|system bus|ConsoleKit|GPG agent|SSH authentication agent|_NET_(NUMBER_OF_DESKTOPS|WORKAREA|CURRENT_DESKTOP)|Thumbnailer failed|pm-is-supported|extension "DPMS"|AT-SPI|a11y'
+QUIET='^\s*$|systemd proxy|system bus|ConsoleKit|GPG agent|SSH authentication agent|_NET_(NUMBER_OF_DESKTOPS|WORKAREA|CURRENT_DESKTOP)|Thumbnailer failed|pm-is-supported|extension "DPMS"|AT-SPI|a11y|XFree86-VidModeExtension|eglGetMscRateANGLE|MESA-LOADER|os_same_file_description|share the file description|Couldn.t open video device|inotify/max_user_watches|system_bus_socket|udev monitor|UPower|dbus/object_proxy|dbus/bus.cc'
 . /usr/local/bin/freenux-folders
 . /usr/local/bin/freenux-ssh
 mkdir -p /root/.config/autostart
