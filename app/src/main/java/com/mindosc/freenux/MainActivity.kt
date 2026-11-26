@@ -41,15 +41,19 @@ class MainActivity : Activity() {
         fun text(s: String, size: Float, color: Int = 0xFFE6E6E6.toInt()) = TextView(this).apply {
             text = s; textSize = size; setTextColor(color); setPadding(0, pad / 4, 0, pad / 4)
         }
+        // Κουμπιά και διακόπτες σε δική τους περιοχή που κυλάει· το log από κάτω με δική του
+        val controls = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         fun button(s: String, onClick: () -> Unit) = Button(this).apply {
             text = s; isAllCaps = false; setOnClickListener { onClick() }
-            root.addView(this, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
+            controls.addView(this, LinearLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
         }
 
         root.addView(text("Freenux", 28f, 0xFFA6E3A1.toInt()))
         root.addView(text("Debian + XFCE στο κινητό. Σύνδεσε οθόνη και γίνεται PC.", 14f))
         status = text("", 16f, 0xFFF9E2AF.toInt())
         root.addView(status)
+        root.addView(ScrollView(this).apply { addView(controls) },
+            LinearLayout.LayoutParams(MATCH_PARENT, 0, 1f))
 
         button("① Εγκατάσταση / Ενημέρωση") { LinuxService.send(this, LinuxService.ACTION_INSTALL) }
         button("Εγκατάσταση Claude Code") { LinuxService.send(this, LinuxService.ACTION_CLAUDE) }
@@ -81,7 +85,7 @@ class MainActivity : Activity() {
         x11Get = button("Κατέβασε Termux:X11 (γρήγορη οθόνη, έως 120Hz)") {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(LinuxService.X11_APK_URL)))
         }
-        root.addView(Switch(this).apply {
+        controls.addView(Switch(this).apply {
             text = "Το εικονίδιο ανοίγει κατευθείαν το desktop"
             setTextColor(0xFFE6E6E6.toInt())
             isChecked = quickStart()
@@ -97,8 +101,8 @@ class MainActivity : Activity() {
                 }
             }
         }
-        root.addView(x11Switch)
-        root.addView(Switch(this).apply {
+        controls.addView(x11Switch)
+        controls.addView(Switch(this).apply {
             text = "GPU επιτάχυνση (πειραματικό)"
             setTextColor(0xFFE6E6E6.toInt())
             isChecked = LinuxService.gpuEnabled(this@MainActivity)
@@ -108,13 +112,13 @@ class MainActivity : Activity() {
             }
         })
 
-        root.addView(Switch(this).apply {
+        controls.addView(Switch(this).apply {
             text = "Ειδοποιήσεις του κινητού μέσα στο Linux"
             setTextColor(0xFFE6E6E6.toInt())
             isChecked = LinuxService.prefs(this@MainActivity).getBoolean("notify", true)
             setOnCheckedChangeListener { _, on -> LinuxService.prefs(this@MainActivity).edit().putBoolean("notify", on).apply() }
         })
-        root.addView(Switch(this).apply {
+        controls.addView(Switch(this).apply {
             text = "Αυτόματο backup κάθε εβδομάδα (όταν φορτίζει)"
             setTextColor(0xFFE6E6E6.toInt())
             isChecked = LinuxService.prefs(this@MainActivity).getBoolean("autobackup", false)
@@ -137,9 +141,9 @@ class MainActivity : Activity() {
                 }
             }
         }
-        root.addView(sshSwitch)
+        controls.addView(sshSwitch)
 
-        root.addView(Switch(this).apply {
+        controls.addView(Switch(this).apply {
             text = "Αυτόματο desktop όταν συνδέω οθόνη"
             setTextColor(0xFFE6E6E6.toInt())
             isChecked = LinuxService.autoEnabled(this@MainActivity)
