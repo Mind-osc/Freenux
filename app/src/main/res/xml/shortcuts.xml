@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="settings" android:enabled="true"
+        android:icon="@drawable/ic_launcher"
+        android:shortcutShortLabel="@string/sc_settings">
+        <intent android:action="android.intent.action.VIEW"
+            android:targetPackage="com.mindosc.freenux"
+            android:targetClass="com.mindosc.freenux.MainActivity">
+            <extra android:name="settings" android:value="true" />
+        </intent>
+    </shortcut>
+</shortcuts>

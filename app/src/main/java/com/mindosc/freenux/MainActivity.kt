@@ -76,6 +76,12 @@ class MainActivity : Activity() {
         x11Get = button("Κατέβασε Termux:X11 (γρήγορη οθόνη, έως 120Hz)") {
             startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(LinuxService.X11_APK_URL)))
         }
+        root.addView(Switch(this).apply {
+            text = "Το εικονίδιο ανοίγει κατευθείαν το desktop"
+            setTextColor(0xFFE6E6E6.toInt())
+            isChecked = quickStart()
+            setOnCheckedChangeListener { _, on -> LinuxService.prefs(this@MainActivity).edit().putBoolean("quick", on).apply() }
+        })
         x11Switch = Switch(this).apply {
             text = "Γρήγορη οθόνη (Termux:X11 αντί για VNC)"
             setTextColor(0xFFE6E6E6.toInt())
@@ -139,12 +145,23 @@ class MainActivity : Activity() {
         root.addView(logScroll, LinearLayout.LayoutParams(MATCH_PARENT, 0, 1f).apply { topMargin = pad / 2 })
         setContentView(root)
 
-        if (LinuxService.autoEnabled(this)) {
-            LinuxService.send(this, LinuxService.ACTION_WATCH)
+        if (LinuxService.autoEnabled(this)) LinuxService.send(this, LinuxService.ACTION_WATCH)
+
+        // Ένα κουμπί: από το εικονίδιο της εφαρμογής πάμε κατευθείαν στο desktop
+        val fromLauncher = intent?.action == Intent.ACTION_MAIN && !intent.getBooleanExtra(EXTRA_SETTINGS, false)
+        if (savedInstanceState == null && fromLauncher && quickStart() && linux.setupDone) {
+            val ext = LinuxService.externalDisplays(this).firstOrNull()
+            openDesktop(ext?.displayId ?: Display.DEFAULT_DISPLAY)
+            if (ext == null) finish() // στο κινητό: αφήνουμε μόνο το desktop
+        } else if (linux.setupDone && LinuxService.autoEnabled(this)) {
             // Αν η οθόνη είναι ήδη συνδεδεμένη
-            if (linux.setupDone) LinuxService.externalDisplays(this).firstOrNull()?.let { openDesktop(it.displayId) }
+            LinuxService.externalDisplays(this).firstOrNull()?.let { openDesktop(it.displayId) }
         }
     }
+
+    private fun quickStart() = LinuxService.prefs(this).getBoolean("quick", true)
+
+    companion object { const val EXTRA_SETTINGS = "settings" }
 
     override fun onResume() {
         super.onResume()

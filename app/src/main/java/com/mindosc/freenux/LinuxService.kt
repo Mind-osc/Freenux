@@ -274,13 +274,13 @@ class LinuxService : Service() {
     }
 
     private fun notification(text: String): Notification {
-        val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java),
-            PendingIntent.FLAG_IMMUTABLE)
+        val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java)
+            .putExtra(MainActivity.EXTRA_SETTINGS, true), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         val stop = PendingIntent.getService(this, 1,
             Intent(this, LinuxService::class.java).setAction(ACTION_STOP), PendingIntent.FLAG_IMMUTABLE)
         return Notification.Builder(this, CH)
             .setSmallIcon(R.drawable.ic_launcher)
-            .setContentTitle("Freenux")
+            .setContentTitle("Freenux – πάτα για ρυθμίσεις")
             .setContentText(text)
             .setContentIntent(open)
             .setOngoing(true)
