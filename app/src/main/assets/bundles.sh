@@ -25,6 +25,8 @@ for b in "$@"; do
         echo "(το VS Code δεν μπήκε)"
       fi
       rm -f /tmp/code.deb ;;
+    windows)
+      bash /usr/local/bin/freenux-windows && ok=$((ok+1)) ;;
     media)
       echo ">>> Ψυχαγωγία: VLC"
       apt-get install -y vlc && ok=$((ok+1)) ;;

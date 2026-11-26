@@ -1,7 +1,7 @@
 #!/bin/bash
-# Freenux ενημερώσεις: v2 Claude/θέματα/φόντα, v3 ήχος, v4 πληκτρολόγιο/κατάστημα, v5 driver GPU, v6 patched Mesa, v7 ειδοποιήσεις/SSH, v8 βίντεο/εμφάνιση, v9 YouTube→mpv/Stremio
+# Freenux ενημερώσεις: v2 Claude/θέματα/φόντα, v3 ήχος, v4 πληκτρολόγιο/κατάστημα, v5 driver GPU, v6 patched Mesa, v7 ειδοποιήσεις/SSH, v8 βίντεο/εμφάνιση, v9 YouTube→mpv/Stremio, v10 touchpad
 set -e
-V=/root/.freenux/update.v9
+V=/root/.freenux/update.v10
 [ -f "$V" ] && { echo ">>> Όλα ενημερωμένα"; exit 0; }
 export DEBIAN_FRONTEND=noninteractive
 mkdir -p /root/.freenux
@@ -194,6 +194,7 @@ done
 touch /root/.freenux/update.v8
 fi
 
+if [ ! -f /root/.freenux/update.v9 ]; then
 echo ">>> Ενημέρωση: κουμπί «Άνοιγμα στο mpv» στον Firefox + νέο yt-dlp"
 apt-get install -y zenity || true
 # Πιο πρόσφατο yt-dlp (το YouTube αλλάζει συχνά· του Debian μένει πίσω)
@@ -284,6 +285,11 @@ Icon=freenux-stremio
 StartupWMClass=Stremio
 Categories=AudioVideo;Video;
 EOF
+touch /root/.freenux/update.v9
+fi
+
+echo ">>> Ενημέρωση: touchpad/πληκτρολόγιο από το κινητό"
+apt-get install -y xdotool
 
 apt-get clean
 touch "$V"

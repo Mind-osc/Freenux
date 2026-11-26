@@ -76,7 +76,10 @@ class MainActivity : Activity() {
                 LinuxService.send(this, LinuxService.ACTION_RESTORE)
             }
         }
-        button("Πακέτα εφαρμογών (Γραφείο, Γραφίστας, Προγραμματιστής, VLC)") { chooseBundles() }
+        button("Touchpad (το κινητό ως ποντίκι και πληκτρολόγιο)") {
+            startActivity(Intent(this, TouchpadActivity::class.java))
+        }
+        button("Πακέτα εφαρμογών (Γραφείο, Γραφίστας, Προγραμματιστής, VLC, Windows)") { chooseBundles() }
         button("Άδειες (αρχεία, πάνω από εφαρμογές, μπαταρία)") { askPermissions() }
         button("Άδεια ειδοποιήσεων (για να βλέπεις τις ειδοποιήσεις στο Linux)") {
             startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
@@ -126,6 +129,25 @@ class MainActivity : Activity() {
                 LinuxService.prefs(this@MainActivity).edit().putBoolean("autobackup", on).apply()
                 BackupJob.schedule(this@MainActivity, on)
                 LogBus.log(if (on) "Αυτόματο backup: κάθε εβδομάδα όταν φορτίζει" else "Αυτόματο backup: ΟΧΙ")
+            }
+        })
+        controls.addView(Switch(this).apply {
+            text = "Touchpad στο κινητό όταν το desktop ανοίγει σε μόνιτορ"
+            setTextColor(0xFFE6E6E6.toInt())
+            isChecked = LinuxService.prefs(this@MainActivity).getBoolean("touchpad", true)
+            setOnCheckedChangeListener { _, on -> LinuxService.prefs(this@MainActivity).edit().putBoolean("touchpad", on).apply() }
+        })
+        controls.addView(Switch(this).apply {
+            text = "Μικρόφωνο κινητού στο Linux"
+            setTextColor(0xFFE6E6E6.toInt())
+            isChecked = LinuxService.prefs(this@MainActivity).getBoolean("mic", false)
+            setOnCheckedChangeListener { _, on ->
+                if (on && checkSelfPermission(Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                    requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), 2)
+                }
+                LinuxService.prefs(this@MainActivity).edit().putBoolean("mic", on).apply()
+                LinuxService.send(this@MainActivity, LinuxService.ACTION_MIC)
+                LogBus.log(if (on) "Μικρόφωνο: ΝΑΙ (όσο τρέχει το desktop θα ανάβει η πράσινη ένδειξη του Android)" else "Μικρόφωνο: ΟΧΙ")
             }
         })
         sshSwitch = Switch(this).apply {
@@ -245,8 +267,9 @@ class MainActivity : Activity() {
             "Γραφίστας – GIMP, Inkscape, Krita",
             "Προγραμματιστής – VS Code, Git, Python, Node",
             "Ψυχαγωγία – VLC",
+            "Εφαρμογές Windows – Box64 + Wine (πειραματικό, ~500 MB)",
         )
-        val keys = arrayOf("office", "graphics", "dev", "media")
+        val keys = arrayOf("office", "graphics", "dev", "media", "windows")
         val picked = BooleanArray(names.size)
         android.app.AlertDialog.Builder(this)
             .setTitle("Πακέτα εφαρμογών")

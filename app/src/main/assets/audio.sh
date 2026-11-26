@@ -9,6 +9,11 @@ load-module module-native-protocol-unix auth-anonymous=1 socket=/tmp/pulse-socke
 load-module module-null-sink sink_name=freenux rate=48000 channels=2 sink_properties=device.description=Ηχεία_κινητού
 set-default-sink freenux
 load-module module-simple-protocol-tcp source=freenux.monitor record=true listen=127.0.0.1 port=4656 rate=48000 format=s16le channels=2
+load-module module-null-sink sink_name=phonemic rate=48000 channels=1 sink_properties=device.description=Είσοδος_μικροφώνου
+load-module module-simple-protocol-tcp sink=phonemic playback=true listen=127.0.0.1 port=4657 rate=48000 format=s16le channels=1
+load-module module-remap-source master=phonemic.monitor source_name=phone_mic source_properties=device.description=Μικρόφωνο_κινητού
+set-default-source phone_mic
+set-default-sink freenux
 EOF
 cat > /etc/pulse/client.conf.d/freenux.conf <<'EOF'
 default-server = unix:/tmp/pulse-socket

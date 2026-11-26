@@ -2,6 +2,10 @@
 # Freenux: εργασίες μέσα στη συνεδρία XFCE (έχουν DISPLAY και DBUS).
 # Τρέχει από το autostart του XFCE.
 
+# 0) Touchpad από το κινητό (XTEST)
+pkill -f freenux-touchd 2>/dev/null
+python3 /usr/local/bin/freenux-touchd >/tmp/touchd.log 2>&1 &
+
 # 1) Ειδοποιήσεις του Android → φούσκες του XFCE
 (
   F=/tmp/freenux-notify

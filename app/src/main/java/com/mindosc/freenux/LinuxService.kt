@@ -29,6 +29,7 @@ class LinuxService : Service() {
         const val ACTION_BACKUP = "backup"
         const val ACTION_RESTORE = "restore"
         const val ACTION_BUNDLES = "bundles"
+        const val ACTION_MIC = "mic"
         const val EXTRA_BUNDLES = "bundles"
         val BACKUP_FILE = java.io.File("/storage/emulated/0/Freenux/freenux-backup.tar.gz")
         fun gpuEnabled(ctx: Context) = prefs(ctx).getBoolean("gpu", false)
@@ -74,6 +75,12 @@ class LinuxService : Service() {
             try { ctx.startActivity(i, opts.toBundle()) } catch (e: Exception) {
                 LogBus.log("Δεν άνοιξε στην οθόνη $displayId: ${e.message}")
             }
+            if (displayId != Display.DEFAULT_DISPLAY && prefs(ctx).getBoolean("touchpad", true)) {
+                try {
+                    ctx.startActivity(Intent(ctx, TouchpadActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                        ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY).toBundle())
+                } catch (_: Exception) {}
+            }
         }
     }
 
@@ -82,6 +89,7 @@ class LinuxService : Service() {
     private var desktop: Process? = null
     private var xserver: Process? = null
     private val audio = AudioBridge()
+    private val mic = MicBridge()
     @Volatile private var busy = false
     private var wake: PowerManager.WakeLock? = null
 
@@ -148,6 +156,7 @@ class LinuxService : Service() {
                     else linux.run("bash /usr/local/bin/freenux-bundles " + list.joinToString(" "))
                 }
             }
+            ACTION_MIC -> if (prefs(this).getBoolean("mic", false) && desktopRunning) mic.start() else mic.stop()
             ACTION_STOP -> stopDesktop(stopService = !autoEnabled(this))
         }
         return START_STICKY
@@ -164,6 +173,7 @@ class LinuxService : Service() {
         desktop?.destroy()
         xserver?.destroy()
         audio.stop()
+        mic.stop()
         wake?.let { if (it.isHeld) it.release() }
         super.onDestroy()
     }
@@ -211,6 +221,7 @@ class LinuxService : Service() {
         val p = linux.command(if (x11) "/usr/local/bin/freenux-desktop-x11" else "/usr/local/bin/freenux-desktop").start()
         desktop = p
         audio.start()
+        if (prefs(this).getBoolean("mic", false)) mic.start()
         if (wake?.isHeld != true) wake = (getSystemService(POWER_SERVICE) as PowerManager)
             .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "freenux:desktop").apply { acquire() }
         thread { p.inputStream.bufferedReader().forEachLine { LogBus.log(it) } }
@@ -281,6 +292,7 @@ class LinuxService : Service() {
 
     private fun stopDesktop(stopService: Boolean) {
         audio.stop()
+        mic.stop()
         desktop?.destroy()
         desktop = null
         xserver?.destroy()
