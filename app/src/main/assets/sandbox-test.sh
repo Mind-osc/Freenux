@@ -11,7 +11,7 @@ printf '>>> Δοκιμή sandbox browsers… (1–2 λεπτά)\n' >> /tmp/freen
 
 # --- Firefox
 FFV=$(firefox-esr --version 2>/dev/null)
-if [ -n "$FFV" ] && [ "$(cat $D/ff-sandbox.tested 2>/dev/null)" != "$FFV" ]; then
+if [ -n "$FFV" ] && [ "$(cat $D/ff-sandbox.tested2 2>/dev/null)" != "$FFV" ]; then
   T=$(mktemp -d)
   env -u MOZ_FAKE_NO_SANDBOX -u MOZ_DISABLE_CONTENT_SANDBOX -u MOZ_DISABLE_GMP_SANDBOX MOZ_HEADLESS=1 \
     timeout 150 firefox-esr --headless --no-remote --profile "$T" --screenshot "$T/s.png" \
@@ -23,7 +23,7 @@ if [ -n "$FFV" ] && [ "$(cat $D/ff-sandbox.tested 2>/dev/null)" != "$FFV" ]; the
     tail -5 "$T/log" >> /tmp/freenux-session.log
     grep -v '^\s*$' "$T/log" | tail -4 | sed 's/^/   [firefox] /' >> /tmp/freenux-log
   fi
-  echo "$FFV" > $D/ff-sandbox.tested
+  echo "$FFV" > $D/ff-sandbox.tested2
   rm -rf "$T"
 fi
 
