@@ -15,6 +15,7 @@
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
+        android:allowAudioPlaybackCapture="true"
         android:label="Freenux"
         android:icon="@drawable/ic_launcher"
         android:roundIcon="@drawable/ic_launcher"

@@ -25,6 +25,7 @@ class MainActivity : Activity() {
     private lateinit var logScroll: ScrollView
     private lateinit var x11Switch: Switch
     private lateinit var x11Get: Button
+    private lateinit var phoneSwitch: Switch
     private lateinit var sshSwitch: Switch
     private val listener: () -> Unit = { runOnUiThread { refresh() } }
 
@@ -76,6 +77,7 @@ class MainActivity : Activity() {
                 LinuxService.send(this, LinuxService.ACTION_RESTORE)
             }
         }
+        button("Οθόνη στο Mac/PC μέσω scrcpy (έως 120 fps)") { scrcpyMode() }
         button("Touchpad (το κινητό ως ποντίκι και πληκτρολόγιο)") {
             startActivity(Intent(this, TouchpadActivity::class.java))
         }
@@ -131,7 +133,7 @@ class MainActivity : Activity() {
                 LogBus.log(if (on) "Αυτόματο backup: κάθε εβδομάδα όταν φορτίζει" else "Αυτόματο backup: ΟΧΙ")
             }
         })
-        controls.addView(Switch(this).apply {
+        phoneSwitch = Switch(this).apply {
             text = "Desktop στην οθόνη του κινητού στα 120Hz (οριζόντιο, για βάση + Bluetooth πληκτρολόγιο/ποντίκι)"
             setTextColor(0xFFE6E6E6.toInt())
             isChecked = LinuxService.prefs(this@MainActivity).getBoolean("phonemode", false)
@@ -140,7 +142,8 @@ class MainActivity : Activity() {
                 LogBus.log(if (on) "Desktop στο κινητό: ΝΑΙ (ισχύει από το επόμενο άνοιγμα στην οθόνη του κινητού· χρειάζεται Termux:X11)" else "Desktop στο κινητό: ΟΧΙ (επαναφορά κανονικών ρυθμίσεων Termux:X11)")
                 if (!on) LinuxService.applyX11Mode(this@MainActivity, false)
             }
-        })
+        }
+        controls.addView(phoneSwitch)
         controls.addView(Switch(this).apply {
             text = "Touchpad στο κινητό όταν το desktop ανοίγει σε μόνιτορ"
             setTextColor(0xFFE6E6E6.toInt())
@@ -273,6 +276,37 @@ class MainActivity : Activity() {
         status.text = "Debian: $inst\nΟθόνη: $mode\nΚατάσταση: ${LogBus.state}$ssh"
         logView.text = LogBus.text()
         logScroll.post { logScroll.fullScroll(ScrollView.FOCUS_DOWN) }
+    }
+
+    private fun scrcpyMode() {
+        val cmd = "scrcpy --max-fps 120 --video-codec h265 --video-bit-rate 24M --keyboard uhid --mouse uhid --stay-awake"
+        val msg = """Το Linux τρέχει στην οθόνη του κινητού (οριζόντιο, 120Hz) και το scrcpy το δείχνει στο Mac/PC, με πληκτρολόγιο και ποντίκι του υπολογιστή.
+
+1. Στο κινητό: Επιλογές προγραμματιστή → «Εντοπισμός σφαλμάτων USB» ON (κουμπί παρακάτω).
+2. Στο Mac: brew install scrcpy
+3. Καλώδιο USB-C κινητό ↔ Mac, πάτα «Να επιτρέπεται» στο κινητό.
+4. Πάτα «Έναρξη» εδώ και μετά τρέξε στο Mac:
+
+$cmd
+
+Για ασύρματα (αφού πετύχει μία φορά με καλώδιο): scrcpy --tcpip ${wifiIp() ?: "<IP κινητού>"} και τα ίδια.
+Για 120 fps χρειάζεται μόνιτορ 120Hz στο Mac (η οθόνη του MacBook είναι 60Hz)."""
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Οθόνη στο Mac/PC (scrcpy)")
+            .setMessage(msg)
+            .setPositiveButton("Έναρξη") { _, _ ->
+                phoneSwitch.isChecked = true
+                val cm = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                cm.setPrimaryClip(android.content.ClipData.newPlainText("scrcpy", cmd))
+                LogBus.log("scrcpy: η εντολή αντιγράφηκε. Τρέξ' τη στο Mac.\n$cmd")
+                openDesktop(Display.DEFAULT_DISPLAY)
+            }
+            .setNeutralButton("Επιλογές προγραμματιστή") { _, _ ->
+                try { startActivity(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)) }
+                catch (_: Exception) { LogBus.log("Ενεργοποίησε τις Επιλογές προγραμματιστή: Ρυθμίσεις → Πληροφορίες τηλεφώνου → Πληροφορίες λογισμικού → 7 πατήματα στον «Αριθμό έκδοσης».") }
+            }
+            .setNegativeButton("Κλείσιμο", null)
+            .show()
     }
 
     private fun openDesktop(displayId: Int) {
